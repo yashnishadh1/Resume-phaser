@@ -1,0 +1,70 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+
+# Build
+dist
+dist-ssr
+*.local
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+backend/venv/
+backend/.venv/
+*.egg-info/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Python / FastAPI
+backend/.env
+backend/venv/
+backend/uploads/
+backend/resume_parser.db
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+
+# OS
+Thumbs.db
+
+# Test artifacts
+*.docx
+
+# Database
+*.db
+*.sqlite3
+
+# Uploads
+backend/uploads/
+
+# PDF test files
+*.pdf
