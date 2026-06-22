@@ -32,7 +32,15 @@ export default function Register() {
         navigate("/dashboard");
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Registration failed. Please try again.");
+      let errorMessage = "Registration failed. Please try again.";
+      if (err.response?.data?.detail) {
+        if (typeof err.response.data.detail === 'string') {
+          errorMessage = err.response.data.detail;
+        } else if (Array.isArray(err.response.data.detail) && err.response.data.detail.length > 0) {
+          errorMessage = err.response.data.detail[0].msg;
+        }
+      }
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -96,6 +104,7 @@ export default function Register() {
               minLength={8}
             />
           </div>
+          <p className="text-xs text-zinc-500 mt-1">Must be at least 8 characters and include an uppercase letter, lowercase letter, number, and special character.</p>
         </div>
 
         <button 
