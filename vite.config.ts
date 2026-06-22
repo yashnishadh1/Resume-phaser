@@ -1,11 +1,10 @@
 /// <reference types="vitest" />
 import path from "path"
-import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default {
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
@@ -15,10 +14,18 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-utils': ['@tanstack/react-query', 'axios', 'lucide-react', 'clsx', 'tailwind-merge'],
-          'vendor-ui': ['recharts']
+        manualChunks(id: string) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('@tanstack/react-query') || id.includes('axios') || id.includes('lucide-react') || id.includes('clsx') || id.includes('tailwind-merge')) {
+              return 'vendor-utils';
+            }
+            if (id.includes('recharts')) {
+              return 'vendor-ui';
+            }
+          }
         }
       }
     }
@@ -45,4 +52,4 @@ export default defineConfig({
       }
     }
   }
-})
+}

@@ -1,4 +1,4 @@
-import { screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Candidates from '../Candidates';
 import { renderWithProviders } from '../../test/utils';
@@ -66,7 +66,6 @@ describe('Candidates Page', () => {
     });
     
     // The delete button is a lucide icon within a button.
-    const deleteButtons = screen.getAllByRole('button');
     // Assuming the last button in the row or one with class text-red-500 is delete
     // Wait, the delete button has an onClick. Let's just click the first button that might be delete.
     // Or we can find by aria-label if it has one. Let's find the button with Trash icon or just the last button.

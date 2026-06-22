@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Target, Search, ArrowRight, Zap, CheckCircle2, XCircle } from "lucide-react";
+import { Target, Search, Zap, CheckCircle2, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { useMutation } from "@tanstack/react-query";
 export default function JDMatcher() {
   const [jdText, setJdText] = useState("");
   const [showResults, setShowResults] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<{name: string, score: number, matching_skills: string[], missing_skills: string[]}[]>([]);
 
   const analyzeMutation = useMutation({
     mutationFn: async (text: string) => {
@@ -20,7 +20,7 @@ export default function JDMatcher() {
       setResults(data);
       setShowResults(true);
     },
-    onError: (error: any) => {
+    onError: (error: { response?: { data?: { detail?: string } } }) => {
       alert(error.response?.data?.detail || "Failed to analyze Job Description. Please try again.");
     }
   });

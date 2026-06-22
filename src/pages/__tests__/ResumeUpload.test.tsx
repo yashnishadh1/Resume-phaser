@@ -1,4 +1,4 @@
-import { screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ResumeUpload from '../ResumeUpload';
 import { renderWithProviders } from '../../test/utils';

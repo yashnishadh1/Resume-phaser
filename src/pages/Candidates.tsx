@@ -18,8 +18,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 
 import { useCandidates, useDeleteCandidate } from "@/api/useCandidates";
@@ -28,7 +26,7 @@ export default function Candidates() {
   const [searchTerm, setSearchTerm] = useState("");
   const { data: candidates, isLoading, error } = useCandidates(searchTerm);
   const deleteCandidate = useDeleteCandidate();
-  const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<import("@/api/useCandidates").Candidate | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   const handleDelete = (id: number) => {
@@ -217,7 +215,7 @@ export default function Candidates() {
                 <div>
                   <h3 className="text-lg font-semibold text-zinc-900 mb-3 border-b border-zinc-100 pb-2">Detected Skills</h3>
                   <div className="flex flex-wrap gap-2">
-                    {selectedCandidate.skills?.map((skill: any, i: number) => (
+                    {selectedCandidate.skills?.map((skill: { name: string }, i: number) => (
                       <Badge key={i} className="bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 border-none px-3 py-1">
                         {skill.name}
                       </Badge>

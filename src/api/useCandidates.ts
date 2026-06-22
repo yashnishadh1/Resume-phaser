@@ -1,15 +1,42 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from './client';
 
+export interface CandidateSkill {
+  id: number;
+  name: string;
+  type: string;
+}
+
+export interface CandidateEducation {
+  id: number;
+  degree: string;
+  institution: string;
+  year: string;
+  cgpa: string;
+}
+
+export interface CandidateExperience {
+  id: number;
+  company: string;
+  position: string;
+  duration: string;
+  description: string;
+}
+
 export interface Candidate {
   id: number;
   full_name: string;
   email: string;
   phone: string;
-  skills: string;
+  location?: string;
+  summary?: string;
+  skills: CandidateSkill[];
+  education: CandidateEducation[];
+  experience: CandidateExperience[];
   experience_years: number;
-  education: string;
   match_score: number;
+  applied_role?: string;
+  status?: string;
   created_at: string;
 }
 
