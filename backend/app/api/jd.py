@@ -25,7 +25,7 @@ class JDMatchResponse(BaseModel):
 def match_jd(
     request: JDMatchRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(deps.get_current_active_user)
+    current_user: User = Depends(deps.get_current_admin_user)
 ):
     candidates = db.query(Candidate).all()
     if not candidates:

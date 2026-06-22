@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.api import deps
 from app.models.user import User
-from app.models.resume import Candidate
+from app.models.resume import Candidate, Resume
 from app.schemas.resume import CandidateResponse
 
 router = APIRouter()
@@ -18,8 +18,8 @@ def get_candidates(
 ):
     query = db.query(Candidate)
     
-    # In a real app we'd join with Resumes to ensure they belong to current_user
-    # if not Admin. For simplicity, we just return all.
+    if not current_user.role or current_user.role.name != "Admin":
+        query = query.join(Resume).filter(Resume.uploader_id == current_user.id)
     
     if search:
         query = query.filter(Candidate.full_name.ilike(f"%{search}%"))
@@ -32,7 +32,11 @@ def get_candidate(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
-    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    query = db.query(Candidate).filter(Candidate.id == candidate_id)
+    if not current_user.role or current_user.role.name != "Admin":
+        query = query.join(Resume).filter(Resume.uploader_id == current_user.id)
+        
+    candidate = query.first()
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
     return candidate
@@ -43,7 +47,11 @@ def delete_candidate(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
-    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    query = db.query(Candidate).filter(Candidate.id == candidate_id)
+    if not current_user.role or current_user.role.name != "Admin":
+        query = query.join(Resume).filter(Resume.uploader_id == current_user.id)
+        
+    candidate = query.first()
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
         

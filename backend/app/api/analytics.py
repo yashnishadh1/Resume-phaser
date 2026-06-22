@@ -10,7 +10,7 @@ router = APIRouter()
 @router.get("/dashboard")
 def get_dashboard_metrics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(deps.get_current_active_user)
+    current_user: User = Depends(deps.get_current_admin_user)
 ):
     total_candidates = db.query(Candidate).count()
     resumes_parsed = db.query(Resume).filter(Resume.status == "completed").count()

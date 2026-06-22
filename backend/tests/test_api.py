@@ -1,22 +1,19 @@
 from fastapi.testclient import TestClient
 from app.main import app
 
-client = TestClient(app)
+from app.main import app
 
-def test_read_main():
+def test_read_main(client):
     response = client.get("/")
     assert response.status_code == 200
     assert response.json() == {"message": "Welcome to Resume Parser AI API"}
 
-def test_register_user(mocker):
-    # Mocking DB so we don't need a real Postgres instance for unit tests
-    mocker.patch("app.api.auth.get_db")
-    
+def test_register_user(client):
     response = client.post(
         "/api/v1/auth/register",
-        json={"email": "test@example.com", "password": "securepassword", "full_name": "Test User"}
+        json={"email": "newuser@example.com", "password": "SecureP@ssw0rd!", "full_name": "Test User", "company_name": "Test Co"}
     )
-    
-    # Since DB is mocked and we just want to ensure routing works, we expect a 500 or mocked response
-    # In a real test setup, we'd use a test DB.
-    assert response.status_code in [200, 500, 400]
+    assert response.status_code == 200
+    data = response.json()
+    assert "id" in data
+    assert data["email"] == "newuser@example.com"

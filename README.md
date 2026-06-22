@@ -1,73 +1,85 @@
-# React + TypeScript + Vite
+# Resume Parser AI 🚀
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[![Frontend Tests](https://img.shields.io/badge/Frontend%20Coverage-81%25-success)](docs/ci-cd.md)
+[![Backend Tests](https://img.shields.io/badge/Backend%20Coverage-82%25-success)](docs/ci-cd.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Currently, two official plugins are available:
+An enterprise-grade, full-stack Resume Parsing Applicant Tracking System (ATS). It leverages Python's NLP capabilities to extract structured data from resumes (PDFs/DOCXs) and provides a sleek, modern React frontend for recruiters to match candidates against Job Descriptions (JDs).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🌟 Key Features
 
-## React Compiler
+- **Automated Resume Parsing**: Extracts Name, Email, Phone, Skills, and Education from raw PDF/DOCX files.
+- **JD Matching Engine**: Scores and ranks parsed candidates against Job Descriptions using intelligent NLP extraction.
+- **Role-Based Access Control**: Secure JWT authentication ensuring data isolation between recruiters.
+- **Comprehensive Analytics**: Dashboard visualizations of parsing success rates and candidate distributions.
+- **CSV Export**: Securely export candidate data for offline processing.
+- **Production Observability**: Built-in Sentry integration, structured JSON logging, and Prometheus metrics.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🏗️ Architecture Overview
 
-## Expanding the ESLint configuration
+The system follows a modern decoupled architecture:
+- **Frontend**: React 18, Vite, Tailwind CSS, Base UI, and React Query for intelligent data fetching and caching.
+- **Backend**: FastAPI (Python 3.13), SQLAlchemy 2.0, PostgreSQL, and Alembic for migrations.
+- **Asynchronous Tasks**: Celery and Redis to handle heavy parsing tasks and OCR fallbacks in the background.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+For a detailed view of the system components, see the [Architecture Documentation](docs/architecture.md).
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 📚 Documentation
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Detailed documentation is available in the `docs/` directory:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. [Architecture & Design](docs/architecture.md)
+2. [API Reference](docs/api.md)
+3. [Security Model](docs/security.md)
+4. [Deployment Guide](docs/deployment.md)
+5. [Local Development](docs/development.md)
+6. [CI/CD Pipelines](docs/ci-cd.md)
+7. [Troubleshooting](docs/troubleshooting.md)
+
+## 🚀 Quick Start (Local Development)
+
+### Prerequisites
+- Node.js (v20+)
+- Python (3.13+)
+- PostgreSQL
+- Redis
+
+### 1. Clone & Database Setup
+```bash
+git clone https://github.com/yashnishadh1/Resume-phaser.git
+cd Resume-phaser
+```
+Ensure you have a local PostgreSQL instance running and create a database named `resume_parser`.
+
+### 2. Backend Setup
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate  # Windows
+pip install -r requirements.txt
+alembic upgrade head
+python start_backend.bat
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 3. Frontend Setup
+```bash
+npm install
+npm run dev
 ```
+
+For detailed instructions, refer to the [Local Development Guide](docs/development.md).
+
+## 🧪 Testing
+
+We maintain strict coverage thresholds (>70%) across the stack.
+
+- **Frontend**: Vitest and React Testing Library (`npm run test -- --coverage`)
+- **Backend**: Pytest and HTTPX (`pytest tests/ --cov=app`)
+
+See the [CI/CD Documentation](docs/ci-cd.md) for automated pipeline details.
+
+## 🤝 Contributing
+1. Create a Feature Branch (`git checkout -b feature/AmazingFeature`)
+2. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+3. Push to the Branch (`git push origin feature/AmazingFeature`)
+4. Open a Pull Request

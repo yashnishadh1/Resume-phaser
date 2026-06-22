@@ -1,28 +1,36 @@
-# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from app.models.resume import Resume, Candidate, CandidateSkill, CandidateExperience, CandidateEducation
 import os
+import re
+from datetime import datetime
+
 try:
-    # pyrefly: ignore [missing-import]
     import fitz # PyMuPDF
 except ImportError:
     fitz = None
-# pyrefly: ignore [missing-import]
 import docx
-# pyrefly: ignore [missing-import]
 import pytesseract
 try:
     import spacy
 except ImportError:
     spacy = None
+
 from PIL import Image
 import io
 
-# Load NLP model lazily or rely on basic regex if not available
-try:
-    nlp = spacy.load("en_core_web_sm")
-except Exception:
-    nlp = None
+# Load NLP model lazily or fallback
+nlp = None
+if spacy:
+    try:
+        nlp = spacy.load("en_core_web_sm")
+    except Exception:
+        import subprocess
+        import sys
+        try:
+            subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+            nlp = spacy.load("en_core_web_sm")
+        except Exception as e:
+            print(f"Failed to download spaCy model: {e}")
 
 class ResumeParserService:
     def __init__(self, db: Session):
@@ -38,7 +46,6 @@ class ResumeParserService:
             else:
                 return "Mock PDF text because PyMuPDF is not installed."
             
-            # OCR Fallback if no text extracted (scanned PDF)
             if not text.strip():
                 for page in doc:
                     pix = page.get_pixmap()
@@ -52,11 +59,9 @@ class ResumeParserService:
         text = ""
         try:
             doc = docx.Document(file_path)
-            # Extract from paragraphs
             for para in doc.paragraphs:
                 if para.text.strip():
                     text += para.text.strip() + "\n"
-            # Extract from tables
             for table in doc.tables:
                 for row in table.rows:
                     for cell in row.cells:
@@ -75,7 +80,6 @@ class ResumeParserService:
         self.db.commit()
 
         try:
-            # 1. Extract Text
             ext = os.path.splitext(resume.file_path)[1].lower()
             text = ""
             if ext == ".pdf":
@@ -83,80 +87,153 @@ class ResumeParserService:
             elif ext in [".doc", ".docx"]:
                 text = self.extract_text_from_docx(resume.file_path)
             
-            # 2. Parse Text (Basic NLP/Regex Heuristics)
-            import re
+            # --- NLP EXTRACTION START ---
             
-            # Extract Email (Robust Regex)
             email_match = re.search(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text)
             email = email_match.group(0) if email_match else None
             
-            # Extract Phone (Robust Regex covering international and varied formats)
             phone_match = re.search(r'(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}', text)
             phone = phone_match.group(0) if phone_match else None
             
-            # Extract Name (Heuristic: find first short line that looks like a name)
-            lines = [line.strip() for line in text.split('\n') if line.strip()]
             name = None
-            for line in lines:
-                words = line.split()
-                if 1 <= len(words) <= 4:
-                    if not any(char.isdigit() for char in line) and not any(p in line for p in ['.', ',', ':', ';', '(', ')']):
-                        if line.lower() not in ['resume', 'cv', 'curriculum vitae']:
-                            name = line.title()
+            blacklist_headers = {"Core Competencies", "Skills", "Experience", "Summary", "Professional Skills", "Education", "Work History", "Academic Background", "Contact"}
+            
+            # 1. SpaCy NER for Name
+            if nlp:
+                doc = nlp(text[:2000]) # Search top part
+                for ent in doc.ents:
+                    if ent.label_ == "PERSON":
+                        clean_name = ent.text.split('\n')[0].strip()
+                        if not any(header.lower() in clean_name.lower() for header in blacklist_headers) and len(clean_name.split()) >= 2:
+                            name = clean_name.title()
                             break
+
+            # Regex fallback
+            if not name:
+                lines = [line.strip() for line in text.split('\n') if line.strip()]
+                for line in lines:
+                    words = line.split()
+                    if 1 <= len(words) <= 4:
+                        if not any(char.isdigit() for char in line) and not any(p in line for p in ['.', ',', ':', ';', '(', ')']):
+                            if line.lower() not in ['resume', 'cv', 'curriculum vitae'] and not any(header.lower() in line.lower() for header in blacklist_headers):
+                                name = line.title()
+                                break
             
             if not name:
                 name = resume.filename.split('.')[0].replace('_', ' ').replace('-', ' ').title() if resume.filename else "Unknown Candidate"
             
-            # Create Candidate
             candidate = Candidate(
                 resume_id=resume.id,
                 full_name=name,
                 email=email,
                 phone=phone,
                 summary=text[:500] + "..." if len(text) > 500 else text,
-                experience_years=0, # Default to 0, advanced NLP needed to calculate accurately
-                match_score=0 # Will be calculated asynchronously against JD later
+                experience_years=0,
+                match_score=0
             )
             self.db.add(candidate)
             self.db.commit()
             self.db.refresh(candidate)
             
-            # Extract Skills (Heuristic: lookup from a predefined list of tech skills)
+            # 2. Strict Skills Extraction
             known_skills = [
-                # Programming Languages
-                "python", "javascript", "typescript", "java", "c++", "c", "c#", "ruby", "go", "rust", "php", "swift", "kotlin", "scala", "dart", "r", "matlab", "perl", "bash", "shell", "powershell", "objective-c", "lua", "haskell",
-                # Web Frameworks & Libraries
-                "react", "angular", "vue", "next.js", "nuxt.js", "svelte", "django", "flask", "fastapi", "spring boot", "express", "ruby on rails", "laravel", "asp.net", "jquery", "bootstrap", "tailwind css", "material ui", "redux", "graphql",
-                # Web Technologies
-                "html", "css", "html5", "css3", "sass", "less", "websockets", "rest api", "json", "xml",
-                # Databases
-                "sql", "mysql", "postgresql", "mongodb", "redis", "elasticsearch", "cassandra", "dynamodb", "oracle", "sql server", "sqlite", "mariadb", "couchdb", "neo4j", "firebase", "supabase", "cockroachdb",
-                # Cloud & DevOps
-                "aws", "azure", "gcp", "google cloud", "docker", "kubernetes", "terraform", "ansible", "jenkins", "gitlab ci", "github actions", "linux", "nginx", "apache", "circleci", "travis ci", "vagrant", "puppet", "chef", "prometheus", "grafana", "splunk", "datadog", "new relic",
-                # Data & ML
-                "machine learning", "deep learning", "nlp", "computer vision", "tensorflow", "pytorch", "scikit-learn", "pandas", "numpy", "apache spark", "hadoop", "kafka", "data analysis", "tableau", "power bi", "looker", "snowflake", "bigquery", "data warehousing", "etl", "keras", "matplotlib", "seaborn",
-                # Mobile Development
-                "react native", "flutter", "android development", "ios development", "xamarin", "ionic",
-                # Softwares & Tools
-                "git", "jira", "confluence", "figma", "adobe xd", "postman", "grpc", "slack", "trello", "asana", "notion", "excel", "word", "powerpoint", "microsoft office", "google workspace",
-                # Core Concepts
-                "agile", "scrum", "ci/cd", "microservices", "system design", "data structures", "algorithms", "object-oriented programming", "oop", "test-driven development", "tdd", "domain-driven design", "ddd",
-                # Soft Skills
-                "communication", "problem solving", "leadership", "teamwork", "time management", "critical thinking", "adaptability", "project management", "collaboration", "creativity", "attention to detail", "analytical skills"
+                "python", "javascript", "typescript", "java", "c++", "c#", "ruby", "go", "php", "swift", "kotlin",
+                "react", "angular", "vue", "next.js", "django", "flask", "fastapi", "spring boot", "express",
+                "html", "css", "sql", "mysql", "postgresql", "mongodb", "redis", "elasticsearch", "aws", "docker",
+                "kubernetes", "linux", "machine learning", "nlp", "tensorflow", "pytorch", "pandas",
+                "communication", "problem solving", "leadership", "agile", "scrum", "data analysis"
             ]
-            found_skills = []
+            
             text_lower = text.lower()
+            found_skills = []
             for skill in known_skills:
-                if skill in text_lower:
+                # Word boundary strict matching
+                if re.search(rf"\b{re.escape(skill)}\b", text_lower):
                     found_skills.append(skill.title())
                     
-            if not found_skills:
-                found_skills = ["Communication", "Problem Solving"]
-                
             for skill in set(found_skills):
                 self.db.add(CandidateSkill(candidate_id=candidate.id, name=skill, type="technical"))
+
+            # 3. Education Extraction
+            degrees = ["B.Tech", "B.E.", "BCA", "MCA", "M.Tech", "MBA", "BSc", "MSc", "Diploma", "B.S."]
+            extracted_degrees = []
+            
+            # Simple keyword scan combined with line context
+            lines = text.split('\n')
+            for i, line in enumerate(lines):
+                line_lower = line.lower()
+                for deg in degrees:
+                    # Use lookaround/boundaries that work with punctuation
+                    if re.search(rf"(?:^|\s){re.escape(deg.lower())}(?:\s|$|,)", line_lower):
+                        extracted_degrees.append((deg, i))
+                        break
+
+            for deg, line_idx in extracted_degrees:
+                context_block = " ".join(lines[max(0, line_idx-2):min(len(lines), line_idx+3)])
                 
+                institution = "Unknown Institution"
+                if nlp:
+                    doc = nlp(context_block)
+                    orgs = [ent.text for ent in doc.ents if ent.label_ == "ORG" and "university" in ent.text.lower()]
+                    if orgs:
+                        institution = orgs[0]
+
+                year_match = re.search(r'\b20[0-2][0-9]\b', context_block)
+                year = year_match.group(0) if year_match else "N/A"
+                
+                cgpa_match = re.search(r'(?:GPA|CGPA|gpa):?\s*([0-9]\.[0-9]{1,2})|([0-9]{1,2}\.[0-9]{1,2})%', context_block)
+                cgpa = cgpa_match.group(1) or cgpa_match.group(2) if cgpa_match else None
+                
+                self.db.add(CandidateEducation(
+                    candidate_id=candidate.id,
+                    degree=deg,
+                    institution=institution,
+                    year=year,
+                    cgpa=cgpa
+                ))
+
+            # 4. Experience Extraction
+            experience_section = ""
+            exp_match = re.search(r'(?i)(?:Experience|Work History|Employment).*?(?=Education|Skills|Projects|Certifications|$)', text, re.DOTALL)
+            if exp_match:
+                experience_section = exp_match.group(0)
+            else:
+                experience_section = text
+            
+            if nlp:
+                doc = nlp(experience_section)
+                orgs = []
+                dates = []
+                
+                for ent in doc.ents:
+                    if ent.label_ == "ORG" and "university" not in ent.text.lower() and "college" not in ent.text.lower():
+                        orgs.append(ent.text)
+                    elif ent.label_ == "DATE":
+                        dates.append(ent.text)
+                
+                # De-duplicate ORGs preserving order
+                seen = set()
+                orgs_unique = [x for x in orgs if not (x in seen or seen.add(x))]
+                
+                job_titles = ["Engineer", "Developer", "Manager", "Intern", "Analyst", "Consultant", "Architect", "Lead", "Specialist"]
+                
+                for idx, org in enumerate(orgs_unique[:3]): # Cap at top 3 experiences
+                    duration = dates[idx] if idx < len(dates) else "Unknown"
+                    position = "Software Engineer"
+                    
+                    for title in job_titles:
+                        if re.search(rf"(?i)\b{title}\b", experience_section):
+                            position = title
+                            break
+                            
+                    self.db.add(CandidateExperience(
+                        candidate_id=candidate.id,
+                        company=org,
+                        position=position,
+                        duration=duration,
+                        description=""
+                    ))
+
             resume.status = "completed"
             self.db.commit()
 

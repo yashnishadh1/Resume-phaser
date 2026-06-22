@@ -9,6 +9,7 @@ from app.schemas.user import UserCreate, UserResponse, Token, UserLogin
 from app.api import deps
 import secrets
 from datetime import datetime
+import hashlib
 
 router = APIRouter()
 
@@ -34,10 +35,22 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login", response_model=Token)
 def login(user_in: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_in.email).first()
-    if not user or not security.verify_password(user_in.password, user.hashed_password):
+    
+    if not user:
+        # Perform a dummy verification to mitigate timing attacks
+        security.verify_password(user_in.password, security.DUMMY_PASSWORD_HASH)
+        authenticated = False
+    else:
+        authenticated = security.verify_password(user_in.password, user.hashed_password)
+        
+    if not authenticated:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+        
+    if security.needs_password_update(user.hashed_password):
+        user.hashed_password = security.get_password_hash(user_in.password)
+        db.commit()
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
@@ -48,7 +61,7 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
     refresh_token_expires = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     
     refresh_token_db = RefreshToken(
-        token=refresh_token_str,
+        token=hashlib.sha256(refresh_token_str.encode()).hexdigest(),
         user_id=user.id,
         expires_at=refresh_token_expires
     )
@@ -63,7 +76,8 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
 
 @router.post("/refresh", response_model=Token)
 def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
-    db_token = db.query(RefreshToken).filter(RefreshToken.token == refresh_token).first()
+    hashed_token = hashlib.sha256(refresh_token.encode()).hexdigest()
+    db_token = db.query(RefreshToken).filter(RefreshToken.token == hashed_token).first()
     
     if not db_token or db_token.expires_at < datetime.utcnow():
         if db_token:
@@ -87,7 +101,7 @@ def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
     new_refresh_token_expires = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     
     new_db_token = RefreshToken(
-        token=new_refresh_token_str,
+        token=hashlib.sha256(new_refresh_token_str.encode()).hexdigest(),
         user_id=user.id,
         expires_at=new_refresh_token_expires
     )
@@ -102,7 +116,8 @@ def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
 
 @router.post("/logout")
 def logout(refresh_token: str, db: Session = Depends(get_db)):
-    db_token = db.query(RefreshToken).filter(RefreshToken.token == refresh_token).first()
+    hashed_token = hashlib.sha256(refresh_token.encode()).hexdigest()
+    db_token = db.query(RefreshToken).filter(RefreshToken.token == hashed_token).first()
     if db_token:
         db.delete(db_token)
         db.commit()

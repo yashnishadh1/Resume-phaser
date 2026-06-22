@@ -5,18 +5,17 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
 
 from app.db.database import SessionLocal, engine, Base
 from app.models.user import User
-import bcrypt
+from app.core import security
 
 def create_test_user():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     
-    # Delete old user with slow hash
+    # Delete old user
     db.query(User).filter(User.email == "test@example.com").delete()
     db.commit()
 
-    # Recreate with fast hash (rounds=4)
-    hashed_password = bcrypt.hashpw("password123".encode('utf-8'), bcrypt.gensalt(rounds=4)).decode('utf-8')
+    hashed_password = security.get_password_hash("password123")
     user = User(
         email="test@example.com",
         hashed_password=hashed_password,

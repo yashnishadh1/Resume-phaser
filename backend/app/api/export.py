@@ -1,5 +1,8 @@
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, Depends
+# pyrefly: ignore [missing-import]
 from fastapi.responses import StreamingResponse
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.api import deps
@@ -14,7 +17,7 @@ router = APIRouter()
 @router.get("/csv")
 def export_csv(
     db: Session = Depends(get_db),
-    current_user: User = Depends(deps.get_current_active_user)
+    current_user: User = Depends(deps.get_current_admin_user)
 ):
     candidates = db.query(Candidate).all()
     
@@ -35,7 +38,7 @@ def export_csv(
 @router.get("/json")
 def export_json(
     db: Session = Depends(get_db),
-    current_user: User = Depends(deps.get_current_active_user)
+    current_user: User = Depends(deps.get_current_admin_user)
 ):
     candidates = db.query(Candidate).all()
     data = []
