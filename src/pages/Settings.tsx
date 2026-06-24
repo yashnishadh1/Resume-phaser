@@ -1,20 +1,47 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Lock, Bell, Users, CreditCard, Shield, Smartphone, Mail, Plus, MoreVertical, CheckCircle2 } from "lucide-react";
+import apiClient from "@/api/client";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('profile');
   
   // Profile Form State
-  const [firstName, setFirstName] = useState(() => localStorage.getItem('userFirstName') || "Jane");
-  const [lastName, setLastName] = useState(() => localStorage.getItem('userLastName') || "Doe");
-  const [email, setEmail] = useState("jane.doe@company.com");
+  const [firstName, setFirstName] = useState(() => localStorage.getItem('userFirstName') || "");
+  const [lastName, setLastName] = useState(() => localStorage.getItem('userLastName') || "");
+  const [email, setEmail] = useState("");
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Fetch real user data from API on mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await apiClient.get("/auth/me");
+        const user = response.data;
+        setEmail(user.email || "");
+        if (user.full_name) {
+          const parts = user.full_name.split(" ");
+          const fn = parts[0] || "";
+          const ln = parts.slice(1).join(" ") || "";
+          setFirstName(fn);
+          setLastName(ln);
+          localStorage.setItem('userFirstName', fn);
+          localStorage.setItem('userLastName', ln);
+        }
+      } catch (err) {
+        // Fallback to localStorage values if API fails
+        console.error("Failed to fetch user profile:", err);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const handleSaveChanges = () => {
     setIsSaving(true);
     setSaveSuccess(false);
-    // Simulate API call
     setTimeout(() => {
       localStorage.setItem('userFirstName', firstName);
       localStorage.setItem('userLastName', lastName);
@@ -22,7 +49,6 @@ export default function Settings() {
       
       setIsSaving(false);
       setSaveSuccess(true);
-      // Hide success message after 3 seconds
       setTimeout(() => setSaveSuccess(false), 3000);
     }, 1000);
   };
@@ -96,12 +122,18 @@ export default function Settings() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-zinc-900">Email Address</label>
-                    <input 
-                      type="email" 
-                      value={email} 
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-white border border-zinc-200 rounded-lg px-4 py-2.5 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#10b981]/20 focus:border-[#10b981] transition-all shadow-sm" 
-                    />
+                    <div className="relative">
+                      <input 
+                        type="email" 
+                        value={isLoadingProfile ? "Loading..." : email}
+                        readOnly
+                        className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2.5 text-sm text-zinc-500 cursor-not-allowed shadow-sm" 
+                      />
+                      {isLoadingProfile && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-zinc-300 border-t-[#10b981] animate-spin" />
+                      )}
+                    </div>
+                    <p className="text-xs text-zinc-400">Email cannot be changed here.</p>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-zinc-900">Role</label>
