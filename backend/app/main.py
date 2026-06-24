@@ -96,6 +96,29 @@ def read_root():
     return {"message": "Welcome to Resume Parser AI API"}
 
 from app.api import auth, resumes, candidates, analytics, jd, export, system
+from alembic.config import Config
+from alembic import command
+import os
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Running database migrations...")
+    try:
+        # Get the path to alembic.ini relative to main.py
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        alembic_ini_path = os.path.join(base_dir, "alembic.ini")
+        
+        # Ensure we're in the right directory so alembic can find env.py
+        current_dir = os.getcwd()
+        os.chdir(base_dir)
+        
+        alembic_cfg = Config(alembic_ini_path)
+        command.upgrade(alembic_cfg, "head")
+        
+        os.chdir(current_dir)
+        logger.info("Database migrations completed successfully.")
+    except Exception as e:
+        logger.error(f"Failed to run migrations: {e}")
 
 # Router inclusion
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
