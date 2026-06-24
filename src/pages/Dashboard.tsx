@@ -8,11 +8,13 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { data: candidates, isLoading } = useCandidates();
 
+  const firstName = localStorage.getItem('userFirstName') || "User";
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-zinc-900 mb-2 tracking-tight">Welcome back, Jane</h1>
+          <h1 className="text-3xl font-display font-bold text-zinc-900 mb-2 tracking-tight">Welcome back, {firstName}</h1>
           <p className="text-zinc-500">Here's what's happening with your candidates today.</p>
         </div>
         <button 
