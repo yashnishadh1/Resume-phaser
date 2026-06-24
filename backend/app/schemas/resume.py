@@ -31,7 +31,7 @@ class CandidateBase(BaseModel):
 
 class CandidateResponse(CandidateBase):
     id: int
-    resume_id: int
+    resume_id: Optional[int] = None
     experience_years: int = 0
     match_score: float = 0.0
     applied_role: Optional[str] = None
