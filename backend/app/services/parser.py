@@ -40,17 +40,17 @@ class ResumeParserService:
         text = ""
         try:
             if fitz:
-                doc = fitz.open(file_path)
-                for page in doc:
-                    text += page.get_text()
+                with fitz.open(file_path) as doc:
+                    for page in doc:
+                        text += page.get_text()
+                    
+                    if not text.strip():
+                        for page in doc:
+                            pix = page.get_pixmap()
+                            img = Image.open(io.BytesIO(pix.tobytes()))
+                            text += pytesseract.image_to_string(img)
             else:
                 return "Mock PDF text because PyMuPDF is not installed."
-            
-            if not text.strip():
-                for page in doc:
-                    pix = page.get_pixmap()
-                    img = Image.open(io.BytesIO(pix.tobytes()))
-                    text += pytesseract.image_to_string(img)
         except Exception as e:
             print(f"Error reading PDF: {e}")
         return text
@@ -217,12 +217,33 @@ class ResumeParserService:
                 
                 job_titles = ["Engineer", "Developer", "Manager", "Intern", "Analyst", "Consultant", "Architect", "Lead", "Specialist"]
                 
+                total_years = 0
+                for date_str in dates[:3]:
+                    years = [int(y) for y in re.findall(r'\b(?:19|20)\d{2}\b', date_str)]
+                    if len(years) >= 2:
+                        total_years += max(1, years[-1] - years[0])
+                    elif len(years) == 1:
+                        if "present" in date_str.lower() or "current" in date_str.lower() or "now" in date_str.lower():
+                            total_years += max(1, datetime.now().year - years[0])
+                        else:
+                            total_years += 1
+
+                candidate.experience_years = total_years
+
                 for idx, org in enumerate(orgs_unique[:3]): # Cap at top 3 experiences
                     duration = dates[idx] if idx < len(dates) else "Unknown"
                     position = "Software Engineer"
                     
+                    org_idx = experience_section.find(org)
+                    if org_idx != -1:
+                        start_idx = max(0, org_idx - 100)
+                        end_idx = min(len(experience_section), org_idx + len(org) + 100)
+                        context_window = experience_section[start_idx:end_idx]
+                    else:
+                        context_window = experience_section
+                    
                     for title in job_titles:
-                        if re.search(rf"(?i)\b{title}\b", experience_section):
+                        if re.search(rf"(?i)\b{title}\b", context_window):
                             position = title
                             break
                             

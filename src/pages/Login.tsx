@@ -20,6 +20,20 @@ export default function Login() {
       const response = await apiClient.post("/auth/login", { email, password });
       if (response.data.access_token) {
         localStorage.setItem("token", response.data.access_token);
+        
+        // Fetch user profile to get name
+        try {
+          const userResponse = await apiClient.get("/auth/me");
+          if (userResponse.data?.full_name) {
+            const fullName = userResponse.data.full_name;
+            localStorage.setItem("userFirstName", fullName.split(' ')[0]);
+            localStorage.setItem("userLastName", fullName.split(' ').slice(1).join(' '));
+            window.dispatchEvent(new Event('profileUpdated'));
+          }
+        } catch (e) {
+          console.error("Failed to fetch user profile", e);
+        }
+
         navigate("/dashboard");
       }
     } catch (err: any) {

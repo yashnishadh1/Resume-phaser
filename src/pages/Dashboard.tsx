@@ -10,6 +10,10 @@ export default function Dashboard() {
 
   const firstName = localStorage.getItem('userFirstName') || "User";
 
+  const avgMatchScore = candidates?.length 
+    ? Math.round(candidates.reduce((acc: number, curr: any) => acc + (curr.match_score || 0), 0) / candidates.length) 
+    : 0;
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -65,9 +69,9 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-900 tracking-tight">84%</div>
+            <div className="text-3xl font-bold text-zinc-900 tracking-tight">{avgMatchScore}%</div>
             <p className="text-xs text-[#10b981] mt-1 font-medium flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span> +2.4% overall
+              <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span> Based on {candidates?.length || 0} candidates
             </p>
           </CardContent>
         </Card>
