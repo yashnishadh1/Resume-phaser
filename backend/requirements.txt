@@ -22,6 +22,6 @@ Pillow==11.1.0
 filetype==1.2.0
 python-json-logger==2.0.7
 asgi-correlation-id==4.3.1
-prometheus-fastapi-instrumentator==7.0.0
+prometheus-fastapi-instrumentator==8.0.2
 psutil==6.1.0
 psycopg2-binary==2.9.12
