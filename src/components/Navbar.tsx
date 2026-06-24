@@ -1,5 +1,6 @@
 import { Search, Bell, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
+import apiClient from "@/api/client";
 
 interface NavbarProps {
   onMenuClick?: () => void;
@@ -10,6 +11,28 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
   const [lastName, setLastName] = useState(() => localStorage.getItem('userLastName') || "Doe");
 
   useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await apiClient.get("/auth/me");
+        if (response.data?.full_name) {
+          const fn = response.data.full_name;
+          const first = fn.split(' ')[0];
+          const last = fn.split(' ').slice(1).join(' ') || " ";
+          
+          localStorage.setItem("userFirstName", first);
+          localStorage.setItem("userLastName", last);
+          setFirstName(first);
+          setLastName(last);
+        }
+      } catch (e) {
+        console.error("Failed to fetch user in Navbar", e);
+      }
+    };
+    
+    if (localStorage.getItem('token')) {
+      fetchUser();
+    }
+
     const handleProfileUpdate = () => {
       setFirstName(localStorage.getItem('userFirstName') || "Jane");
       setLastName(localStorage.getItem('userLastName') || "Doe");
