@@ -27,8 +27,7 @@ router = APIRouter()
 def trigger_parsing(resume_id: int):
     try:
         from app.jobs.celery_worker import parse_resume_task
-        # Call the task directly in the BackgroundTask thread to bypass Celery/Redis
-        parse_resume_task(resume_id)
+        parse_resume_task.delay(resume_id)
     except Exception as e:
         print(f"Failed to parse resume: {e}")
 

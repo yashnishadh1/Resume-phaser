@@ -15,6 +15,7 @@ try:
 except ImportError:
     spacy = None
 
+# pyrefly: ignore [missing-import]
 from PIL import Image
 import io
 
@@ -142,7 +143,7 @@ class ResumeParserService:
                 "html", "css", "sql", "mysql", "postgresql", "mongodb", "redis", "elasticsearch", "aws", "docker",
                 "kubernetes", "linux", "machine learning", "nlp", "tensorflow", "pytorch", "pandas",
                 "communication", "problem solving", "leadership", "agile", "scrum", "data analysis",
-                "node.js", "nodejs", "node", "git", "rust", "terraform", "azure", "gcp", "figma", "r", "scala",
+                "node.js", "nodejs", "node", "git", "rust", "terraform", "azure", "gcp", "figma", "r programming", "scala",
                 "graphql", "rest", "kafka", "spark"
             ]
             
