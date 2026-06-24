@@ -25,7 +25,7 @@ class JDMatchResponse(BaseModel):
 def match_jd(
     request: JDMatchRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(deps.get_current_admin_user)
+    current_user: User = Depends(deps.get_current_active_user)
 ):
     candidates = db.query(Candidate).all()
     if not candidates:
@@ -79,16 +79,17 @@ def match_jd(
         
     jd_vector = compute_tfidf(jd_words_list)
     
+    raw_scores = []
     for i, c_words in enumerate(candidate_docs):
         c = candidate_indices[i]
         c_skills = [s.name.title() for s in c.skills]
-        
         c_vector = compute_tfidf(c_words)
         score = cosine_sim(jd_vector, c_vector)
+        raw_scores.append((c, c_skills, score))
         
-        # Determine matching and missing based on naive intersection
-        # We assume any skill mentioned in JD is a requirement
-        # Let's extract known skills from JD for a cleaner comparison
+    max_score = max([rs[2] for rs in raw_scores] + [0.0001])
+    
+    for c, c_skills, score in raw_scores:
         known_tech_skills = {"python", "javascript", "react", "fastapi", "sql", "machine learning", "docker", "aws", "typescript", "css", "html", "node.js"}
         jd_inferred_skills = [w.title() for w in jd_words if w in known_tech_skills]
         
@@ -98,7 +99,7 @@ def match_jd(
         matching = list(set(jd_inferred_skills).intersection(set(c_skills)))
         missing = list(set(jd_inferred_skills) - set(c_skills))
         
-        normalized_score = min(100, int(score * 100 * 2)) # *2 to boost pure python cosine sim which is usually low
+        normalized_score = min(100, int((score / max_score) * 100))
         
         results.append({
             "candidate_id": c.id,

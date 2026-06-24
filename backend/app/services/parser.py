@@ -138,10 +138,12 @@ class ResumeParserService:
             # 2. Strict Skills Extraction
             known_skills = [
                 "python", "javascript", "typescript", "java", "c++", "c#", "ruby", "go", "php", "swift", "kotlin",
-                "react", "angular", "vue", "next.js", "django", "flask", "fastapi", "spring boot", "express",
+                "react", "angular", "vue", "next.js", "nextjs", "django", "flask", "fastapi", "spring boot", "express",
                 "html", "css", "sql", "mysql", "postgresql", "mongodb", "redis", "elasticsearch", "aws", "docker",
                 "kubernetes", "linux", "machine learning", "nlp", "tensorflow", "pytorch", "pandas",
-                "communication", "problem solving", "leadership", "agile", "scrum", "data analysis"
+                "communication", "problem solving", "leadership", "agile", "scrum", "data analysis",
+                "node.js", "nodejs", "node", "git", "rust", "terraform", "azure", "gcp", "figma", "r", "scala",
+                "graphql", "rest", "kafka", "spark"
             ]
             
             text_lower = text.lower()
@@ -174,7 +176,8 @@ class ResumeParserService:
                 institution = "Unknown Institution"
                 if nlp:
                     doc = nlp(context_block)
-                    orgs = [ent.text for ent in doc.ents if ent.label_ == "ORG" and "university" in ent.text.lower()]
+                    valid_org_keywords = ["university", "institute", "college", "school", "academy", "iit", "nit", "bits", "mit"]
+                    orgs = [ent.text for ent in doc.ents if ent.label_ == "ORG" and any(k in ent.text.lower() for k in valid_org_keywords)]
                     if orgs:
                         institution = orgs[0]
 
