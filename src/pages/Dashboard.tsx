@@ -98,7 +98,12 @@ export default function Dashboard() {
           <CardHeader className="border-b border-zinc-100 pb-4">
             <div className="flex justify-between items-center">
               <CardTitle className="text-lg font-display text-zinc-900">Recent Candidates</CardTitle>
-              <button className="text-sm text-[#10b981] hover:text-[#059669] transition-colors">View All</button>
+              <button 
+                onClick={() => navigate('/dashboard/candidates')}
+                className="text-sm text-[#10b981] hover:text-[#059669] transition-colors"
+              >
+                View All
+              </button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
