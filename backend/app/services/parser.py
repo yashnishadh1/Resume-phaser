@@ -91,7 +91,7 @@ class ResumeParserService:
             # --- NLP EXTRACTION START ---
             
             email_match = re.search(r'([a-zA-Z0-9_.+-]+)\s*@\s*([a-zA-Z0-9-]+)\s*\.\s*([a-zA-Z0-9-.]+)', text)
-            email = "".join(email_match.groups()) if email_match else None
+            email = f"{email_match.group(1)}@{email_match.group(2)}.{email_match.group(3)}" if email_match else None
             
             phone_match = re.search(r'(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}', text)
             phone = phone_match.group(0) if phone_match else None
