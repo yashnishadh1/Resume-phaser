@@ -150,8 +150,8 @@ class ResumeParserService:
             text_lower = text.lower()
             found_skills = []
             for skill in known_skills:
-                # Word boundary strict matching
-                if re.search(rf"\b{re.escape(skill)}\b", text_lower):
+                # Word boundary strict matching for special characters
+                if re.search(rf"(?<![\w]){re.escape(skill)}(?![\w])", text_lower):
                     found_skills.append(skill.title())
                     
             for skill in set(found_skills):
