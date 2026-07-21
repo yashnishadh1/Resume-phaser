@@ -126,3 +126,26 @@ def logout(refresh_token: str, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def read_user_me(current_user: User = Depends(deps.get_current_active_user)):
     return current_user
+
+@router.delete("/me")
+def delete_user_me(
+    current_user: User = Depends(deps.get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    db.delete(current_user)
+    db.commit()
+    return {"status": "success", "detail": "User deleted successfully"}
+
+@router.delete("/{user_id}")
+def delete_user(
+    user_id: int,
+    current_user: User = Depends(deps.get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    db.delete(user)
+    db.commit()
+    return {"status": "success", "detail": f"User {user_id} deleted successfully"}
