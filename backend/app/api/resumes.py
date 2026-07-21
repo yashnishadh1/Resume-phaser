@@ -112,3 +112,29 @@ def get_resumes(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     return db.query(Resume).filter(Resume.uploader_id == current_user.id).all()
+
+from fastapi.responses import FileResponse
+
+@router.get("/{resume_id}/file")
+def get_resume_file(
+    resume_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_user)
+):
+    # Depending on role, allow admin to view any resume, or user to view own
+    query = db.query(Resume).filter(Resume.id == resume_id)
+    if not current_user.role or current_user.role.name != "Admin":
+        query = query.filter(Resume.uploader_id == current_user.id)
+    
+    resume = query.first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+        
+    if not os.path.exists(resume.file_path):
+        raise HTTPException(status_code=404, detail="File not found on server")
+        
+    return FileResponse(
+        resume.file_path, 
+        media_type=resume.mime_type or "application/pdf", 
+        filename=resume.filename
+    )

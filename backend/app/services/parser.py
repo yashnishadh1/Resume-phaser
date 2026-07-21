@@ -90,8 +90,8 @@ class ResumeParserService:
             
             # --- NLP EXTRACTION START ---
             
-            email_match = re.search(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text)
-            email = email_match.group(0) if email_match else None
+            email_match = re.search(r'([a-zA-Z0-9_.+-]+)\s*@\s*([a-zA-Z0-9-]+)\s*\.\s*([a-zA-Z0-9-.]+)', text)
+            email = "".join(email_match.groups()) if email_match else None
             
             phone_match = re.search(r'(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}', text)
             phone = phone_match.group(0) if phone_match else None
@@ -123,12 +123,19 @@ class ResumeParserService:
             if not name:
                 name = resume.filename.split('.')[0].replace('_', ' ').replace('-', ' ').title() if resume.filename else "Unknown Candidate"
             
+            # More sophisticated summary extraction
+            summary_match = re.search(r'(?i)(?:Summary|Profile|Objective|About Me|Professional Summary)[\s\:\-]+(.+?)(?=\n\s*(?:Experience|Education|Skills|Projects|Certifications|Work History|Employment)\b|$)', text, re.DOTALL)
+            extracted_summary = summary_match.group(1).strip() if summary_match else text[:500] + ("..." if len(text) > 500 else "")
+            extracted_summary = " ".join(extracted_summary.split())
+            if len(extracted_summary) > 2000:
+                extracted_summary = extracted_summary[:1997] + "..."
+            
             candidate = Candidate(
                 resume_id=resume.id,
                 full_name=name,
                 email=email,
                 phone=phone,
-                summary=text[:500] + "..." if len(text) > 500 else text,
+                summary=extracted_summary,
                 experience_years=0,
                 match_score=0
             )

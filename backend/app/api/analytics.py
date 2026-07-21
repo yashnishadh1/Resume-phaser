@@ -25,5 +25,11 @@ def get_dashboard_metrics(
             {"name": "Python", "count": 120},
             {"name": "React", "count": 95},
             {"name": "Docker", "count": 80}
+        ],
+        "working_gaps": [
+            {"range": "0-3 months", "count": int(total_candidates * 0.5) if total_candidates else 50},
+            {"range": "3-6 months", "count": int(total_candidates * 0.3) if total_candidates else 30},
+            {"range": "6-12 months", "count": int(total_candidates * 0.15) if total_candidates else 15},
+            {"range": "> 12 months", "count": int(total_candidates * 0.05) if total_candidates else 5}
         ]
     }
