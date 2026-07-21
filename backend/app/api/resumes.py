@@ -26,8 +26,14 @@ router = APIRouter()
 
 def trigger_parsing(resume_id: int):
     try:
-        from app.jobs.celery_worker import parse_resume_task
-        parse_resume_task.delay(resume_id)
+        from app.services.parser import ResumeParserService
+        from app.db.database import SessionLocal
+        db = SessionLocal()
+        try:
+            service = ResumeParserService(db)
+            service.process_resume(resume_id)
+        finally:
+            db.close()
     except Exception as e:
         print(f"Failed to parse resume: {e}")
 
