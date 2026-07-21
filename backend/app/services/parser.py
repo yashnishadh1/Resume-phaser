@@ -138,13 +138,74 @@ class ResumeParserService:
             
             # 2. Strict Skills Extraction
             known_skills = [
-                "python", "javascript", "typescript", "java", "c++", "c#", "ruby", "go", "php", "swift", "kotlin",
-                "react", "angular", "vue", "next.js", "nextjs", "django", "flask", "fastapi", "spring boot", "express",
-                "html", "css", "sql", "mysql", "postgresql", "mongodb", "redis", "elasticsearch", "aws", "docker",
-                "kubernetes", "linux", "machine learning", "nlp", "tensorflow", "pytorch", "pandas",
-                "communication", "problem solving", "leadership", "agile", "scrum", "data analysis",
-                "node.js", "nodejs", "node", "git", "rust", "terraform", "azure", "gcp", "figma", "r programming", "scala",
-                "graphql", "rest", "kafka", "spark"
+                # Programming Languages
+                "python", "javascript", "typescript", "java", "c", "c++", "c#", "ruby", "go", "php", "swift", "kotlin",
+                "rust", "dart", "scala", "perl", "r programming", "r", "shell", "bash", "powershell", "lua", "haskell",
+                "clojure", "elixir", "erlang", "objective-c", "assembly",
+
+                # Web Technologies & Frameworks (Frontend)
+                "html", "html5", "css", "css3", "react", "react.js", "reactjs", "angular", "vue", "vue.js", "next.js", "nextjs",
+                "svelte", "solidjs", "tailwind", "tailwindcss", "bootstrap", "sass", "less", "jquery", "webpack", "vite",
+                "redux", "mobx", "zustand", "material-ui", "chakra ui",
+
+                # Backend Frameworks
+                "node.js", "nodejs", "node", "django", "flask", "fastapi", "spring", "spring boot", "express", "express.js",
+                "nestjs", "laravel", "symfony", "asp.net", ".net", "gin", "echo", "fiber", "ruby on rails", "rails", "sinatra",
+
+                # Mobile Development
+                "react native", "flutter", "ios", "android", "xcode", "android studio", "ionic", "xamarin",
+
+                # Databases & Data Management
+                "sql", "mysql", "postgresql", "postgres", "mongodb", "redis", "elasticsearch", "sqlite", "oracle", "mariadb",
+                "cassandra", "dynamodb", "couchbase", "neo4j", "snowflake", "bigquery", "redshift", "hadoop", "spark", "kafka",
+                "graphql", "rest", "rest api", "soap", "grpc", "rabbitmq", "activemq",
+
+                # Cloud & DevOps
+                "aws", "amazon web services", "gcp", "google cloud", "azure", "docker", "kubernetes", "linux", "terraform",
+                "digitalocean", "heroku", "vercel", "netlify", "jenkins", "github actions", "gitlab ci", "circleci",
+                "ansible", "puppet", "chef", "vagrant", "prometheus", "grafana", "datadog", "splunk", "nginx", "apache",
+                "git", "bitbucket", "docker compose",
+
+                # AI, ML, Data Science & Analytics
+                "machine learning", "nlp", "tensorflow", "pytorch", "pandas", "data analysis", "data science",
+                "deep learning", "artificial intelligence", "generative ai", "llms", "openai", "langchain", "hugging face",
+                "scikit-learn", "keras", "numpy", "scipy", "matplotlib", "seaborn", "computer vision", "opencv", "tableau", "power bi",
+
+                # Soft Skills & Management
+                "communication", "problem solving", "leadership", "agile", "scrum", "teamwork", "critical thinking",
+                "time management", "project management", "adaptability", "presentation", "customer service", "collaboration",
+                "decision making", "emotional intelligence", "mentoring", "kanban",
+
+                # Basic Tools & Concepts
+                "microsoft word", "microsoft excel", "microsoft powerpoint", "ms office", "jira", "trello", "asana", "confluence",
+                "postman", "swagger", "figma", "adobe xd", "photoshop", "illustrator",
+                
+                # Emerging & Other Technologies
+                "microservices", "serverless", "blockchain", "web3", "solidity", "smart contracts", "iot", "internet of things",
+                "cybersecurity", "ethical hacking", "cryptography", "agile methodology",
+
+                # Business, Finance & Management (MBA, BBA, BCOM)
+                "business administration", "marketing", "finance", "accounting", "human resources", "hr", "operations management",
+                "supply chain", "logistics", "corporate finance", "taxation", "auditing", "financial modeling", "market research",
+                "sales", "retail management", "business strategy", "strategic management", "economics", "cost accounting", "wealth management",
+
+                # Hotel Management (HM)
+                "hospitality", "hotel management", "front office", "food & beverage", "f&b", "housekeeping", "event management",
+                "catering", "culinary arts", "guest relations", "revenue management", "banquet", "reservation",
+
+                # Law (LLB)
+                "legal research", "litigation", "corporate law", "criminal law", "drafting", "legal compliance", "arbitration",
+                "intellectual property", "ipr", "contract law", "civil law", "family law", "constitutional law", "paralegal", "advocacy",
+
+                # Arts, Humanities & Sciences (BA, BSC, BCA)
+                "sociology", "psychology", "political science", "history", "geography", "literature", "public administration",
+                "journalism", "mass communication", "content writing", "editing", "translation", "copywriting",
+                "mathematics", "physics", "chemistry", "biology", "statistics", "software engineering", "systems analysis", "network administration",
+
+                # Chemical Fields
+                "chemical engineering", "process engineering", "thermodynamics", "mass transfer", "heat transfer", "organic chemistry",
+                "inorganic chemistry", "analytical chemistry", "polymer science", "materials science", "spectroscopy", "chromatography",
+                "safety engineering", "hazard analysis", "chemical safety", "petrochemistry"
             ]
             
             text_lower = text.lower()
