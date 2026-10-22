@@ -52,7 +52,7 @@ describe('DropdownMenu', () => {
     await user.click(trigger);
     
     // Check elements
-    expect(screen.getByText('Profile')).toBeInTheDocument();
+    expect(await screen.findByText('Profile')).toBeInTheDocument();
     expect(screen.getByText('⇧⌘P')).toBeInTheDocument();
     expect(screen.getByText('Status')).toBeInTheDocument();
     expect(screen.getByText('Top')).toBeInTheDocument();
