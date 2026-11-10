@@ -1,9 +1,25 @@
 from fastapi.testclient import TestClient
 
-def test_authorized_export(client: TestClient, admin_user_token: str):
-    response = client.get("/api/v1/export/candidates", headers={"Authorization": f"Bearer {admin_user_token}"})
-    assert response.status_code in [200, 404] # Valid or not implemented
 
-def test_unauthorized_export(client: TestClient, test_user_token: str):
-    response = client.get("/api/v1/export/candidates", headers={"Authorization": f"Bearer {test_user_token}"})
-    assert response.status_code in [403, 401, 404] # Forbidden expected
+def test_admin_can_export_candidates(client: TestClient, admin_user_token: str):
+    response = client.get(
+        "/api/v1/export/csv",
+        headers={"Authorization": f"Bearer {admin_user_token}"},
+    )
+    assert response.status_code == 200
+    assert "text/csv" in response.headers["content-type"]
+    assert response.text.startswith("ID,Name,Email,Phone,Location,Summary")
+
+
+def test_user_can_export_workspace_candidates(client: TestClient, test_user_token: str):
+    response = client.get(
+        "/api/v1/export/csv",
+        headers={"Authorization": f"Bearer {test_user_token}"},
+    )
+    assert response.status_code == 200
+    assert "text/csv" in response.headers["content-type"]
+
+
+def test_export_requires_authentication(client: TestClient):
+    response = client.get("/api/v1/export/csv")
+    assert response.status_code == 401

@@ -5,7 +5,7 @@ from app.db.database import get_db
 from app.core import security
 from app.core.config import settings
 from app.models.user import User, RefreshToken
-from app.schemas.user import UserCreate, UserResponse, Token, UserLogin
+from app.schemas.user import UserCreate, UserResponse, Token, UserLogin, UserUpdate, UserPasswordChange
 from app.api import deps
 import secrets
 from datetime import datetime, timezone
@@ -131,6 +131,32 @@ def logout(request: RefreshTokenRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def read_user_me(current_user: User = Depends(deps.get_current_active_user)):
     return current_user
+
+@router.patch("/me", response_model=UserResponse)
+def update_user_me(
+    request: UserUpdate,
+    current_user: User = Depends(deps.get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    current_user.full_name = request.full_name
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+@router.post("/password")
+def change_password(
+    request: UserPasswordChange,
+    current_user: User = Depends(deps.get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    if not security.verify_password(request.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    current_user.hashed_password = security.get_password_hash(request.new_password)
+    db.query(RefreshToken).filter(RefreshToken.user_id == current_user.id).delete(synchronize_session=False)
+    db.add(current_user)
+    db.commit()
+    return {"status": "success"}
 
 @router.delete("/me")
 def delete_user_me(

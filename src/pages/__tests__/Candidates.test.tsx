@@ -53,11 +53,11 @@ describe('Candidates Page', () => {
 
     await waitFor(() => expect(screen.getByText('John Doe')).toBeInTheDocument());
     const table = screen.getByRole('table');
-    expect(within(table).getAllByRole('columnheader').map((header) => header.textContent?.trim())).toEqual([
-      'Candidate Info', 'Applied Role', 'Experience', 'Match', 'Status', 'Actions',
+    expect(within(table).getAllByRole('columnheader').map((header) => header.textContent?.replace(/Sort by .*/, '').trim())).toEqual([
+      '', 'Candidate Info', 'Applied Role', 'Experience', 'Match', 'Status', 'Actions',
     ]);
     const johnRow = within(table).getByRole('row', { name: /John Doe/ });
-    expect(within(johnRow).getAllByRole('cell')).toHaveLength(6);
+    expect(within(johnRow).getAllByRole('cell')).toHaveLength(7);
     expect(within(johnRow).getByText('Engineer')).toBeInTheDocument();
     expect(within(johnRow).getByText('5 years')).toBeInTheDocument();
     expect(within(johnRow).getByText('95%')).toBeInTheDocument();
@@ -67,6 +67,22 @@ describe('Candidates Page', () => {
     await user.selectOptions(screen.getByRole('combobox', { name: /filter candidates by status/i }), 'Processing');
     expect(screen.queryByText('John Doe')).not.toBeInTheDocument();
     expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+  });
+
+  it('sorts rows and allows column visibility, page size and selection controls', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Candidates />);
+    await waitFor(() => expect(screen.getByText('John Doe')).toBeInTheDocument());
+    const table = screen.getByRole('table');
+    expect(within(table).getAllByRole('row')[1]).toHaveTextContent('Jane Smith');
+    await user.click(screen.getByRole('button', { name: /Sort by candidate name/i }));
+    expect(within(table).getAllByRole('row')[1]).toHaveTextContent('John Doe');
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Match' }));
+    expect(within(table).queryByRole('columnheader', { name: /Match/i })).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Rows per page' }), '25');
+    await user.click(screen.getByRole('checkbox', { name: 'Select Jane Smith' }));
+    expect(screen.getByText('1 candidate selected')).toBeInTheDocument();
   });
 
   it('opens and closes a candidate profile from its row actions', async () => {

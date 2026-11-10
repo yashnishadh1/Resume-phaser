@@ -4,32 +4,39 @@ from app.db.database import get_db
 from app.api import deps
 from app.models.user import User
 from app.models.resume import Candidate, Resume, CandidateSkill
+from sqlalchemy import func
 
 router = APIRouter()
 
 @router.get("/dashboard")
 def get_dashboard_metrics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(deps.get_current_admin_user)
+    current_user: User = Depends(deps.get_current_active_user)
 ):
-    total_candidates = db.query(Candidate).count()
-    resumes_parsed = db.query(Resume).filter(Resume.status == "completed").count()
-    
-    # Mock some data for the MVP dashboard
+    candidate_query = db.query(Candidate).join(Resume, Candidate.resume_id == Resume.id)
+    resume_query = db.query(Resume).filter(Resume.status == "completed")
+    skill_query = db.query(CandidateSkill.name, func.count(CandidateSkill.id)).join(
+        Candidate, CandidateSkill.candidate_id == Candidate.id
+    ).join(Resume, Candidate.resume_id == Resume.id)
+
+    if not current_user.role or current_user.role.name != "Admin":
+        candidate_query = candidate_query.filter(Resume.uploader_id == current_user.id)
+        resume_query = resume_query.filter(Resume.uploader_id == current_user.id)
+        skill_query = skill_query.filter(Resume.uploader_id == current_user.id)
+
+    total_candidates = candidate_query.count()
+    average_score = candidate_query.with_entities(func.avg(Candidate.match_score)).scalar()
+    top_skills = [
+        {"name": name, "count": count}
+        for name, count in skill_query.group_by(CandidateSkill.name)
+        .order_by(func.count(CandidateSkill.id).desc(), CandidateSkill.name.asc())
+        .limit(8)
+        .all()
+    ]
     return {
         "total_candidates": total_candidates,
-        "resumes_parsed": resumes_parsed,
-        "avg_match_score": 84,
-        "processing_time_avg": 1.2,
-        "top_skills": [
-            {"name": "Python", "count": 120},
-            {"name": "React", "count": 95},
-            {"name": "Docker", "count": 80}
-        ],
-        "working_gaps": [
-            {"range": "0-3 months", "count": int(total_candidates * 0.5) if total_candidates else 50},
-            {"range": "3-6 months", "count": int(total_candidates * 0.3) if total_candidates else 30},
-            {"range": "6-12 months", "count": int(total_candidates * 0.15) if total_candidates else 15},
-            {"range": "> 12 months", "count": int(total_candidates * 0.05) if total_candidates else 5}
-        ]
+        "resumes_parsed": resume_query.count(),
+        "avg_match_score": round(float(average_score), 2) if average_score is not None else None,
+        "processing_time_avg": None,
+        "top_skills": top_skills,
     }

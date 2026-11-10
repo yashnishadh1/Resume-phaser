@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.api import deps
@@ -11,9 +12,9 @@ router = APIRouter()
 @router.get("", response_model=list[CandidateResponse])
 def get_candidates(
     db: Session = Depends(get_db),
-    skip: int = 0,
-    limit: int = 100,
-    search: str = None,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=1000),
+    search: str | None = Query(default=None, min_length=1, max_length=200),
     current_user: User = Depends(deps.get_current_active_user)
 ):
     query = db.query(Candidate)
@@ -22,7 +23,12 @@ def get_candidates(
         query = query.join(Resume).filter(Resume.uploader_id == current_user.id)
     
     if search:
-        query = query.filter(Candidate.full_name.ilike(f"%{search}%"))
+        pattern = f"%{search}%"
+        query = query.filter(or_(
+            Candidate.full_name.ilike(pattern),
+            Candidate.email.ilike(pattern),
+            Candidate.applied_role.ilike(pattern),
+        ))
         
     return query.offset(skip).limit(limit).all()
 

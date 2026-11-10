@@ -16,6 +16,12 @@ export const handlers = [
       is_active: true
     });
   }),
+  http.get('*/api/v1/auth/me', () => HttpResponse.json({ id: 1, email: 'user@example.com', full_name: 'Jane Doe', is_active: true })),
+  http.patch('*/api/v1/auth/me', async ({ request }) => {
+    const body = await request.json() as { full_name?: string };
+    return HttpResponse.json({ id: 1, email: 'user@example.com', full_name: body.full_name || 'Jane Doe', is_active: true });
+  }),
+  http.post('*/api/v1/auth/password', () => HttpResponse.json({ status: 'success' })),
   http.get('*/api/v1/candidates', ({ request }) => {
     const url = new URL(request.url);
     const search = url.searchParams.get('search');
@@ -41,13 +47,13 @@ export const handlers = [
     });
   }),
   http.post('*/api/v1/jd/match', async ({ request }) => {
-    const body: any = await request.json();
+    const body = await request.json() as { description?: string };
     if (body.description === 'error') {
-      return new HttpResponse('{"detail":"Failed to analyze Job Description. Please try again."}', { status: 500, headers: { 'Content-Type': 'application/json' }});
+      return new HttpResponse('{"detail":"Unable to analyze the job description. Please try again."}', { status: 500, headers: { 'Content-Type': 'application/json' }});
     }
     if (body.description === 'empty') return HttpResponse.json([]);
     return HttpResponse.json([
-      { name: 'John Doe', score: 95, matching_skills: ['React'], missing_skills: ['AWS'] }
+      { candidate_id: 1, name: 'John Doe', score: 95, matching_skills: ['React'], missing_skills: ['AWS'], recommendations: [] }
     ]);
   })
 ];

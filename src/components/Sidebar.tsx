@@ -1,4 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { notify } from "@/lib/notifications";
+import apiClient from "@/api/client";
 import { 
   LayoutDashboard, 
   Users, 
@@ -28,17 +30,37 @@ export default function Sidebar({ isOpen = false, setIsOpen }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const handleLogout = async () => {
+    const refreshToken = localStorage.getItem("refresh_token");
+    let revoked = !refreshToken;
+    if (refreshToken) {
+      try {
+        await apiClient.post("/auth/logout", { refresh_token: refreshToken });
+        revoked = true;
+      } catch {
+        revoked = false;
+      }
+    }
+    localStorage.removeItem("token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("userFirstName");
+    localStorage.removeItem("userLastName");
+    window.dispatchEvent(new Event("profileUpdated"));
+    notify(revoked ? "You have been logged out." : "Signed out on this device. The server session could not be revoked; try again when online.", revoked ? "success" : "error");
+    navigate("/login", { replace: true });
+  };
+
   return (
-    <aside className={`w-64 h-screen border-r border-zinc-200 bg-white flex flex-col fixed left-0 top-0 z-50 transition-transform duration-300 md:translate-x-0 ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
+    <aside aria-label="Application sidebar" className={`fixed left-0 top-0 z-50 flex h-dvh w-64 flex-col border-r border-slate-700 bg-slate-900 transition-transform duration-300 md:translate-x-0 ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
       <div className="p-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-[#10b981] to-[#3b82f6] rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg leading-none tracking-tighter">R</span>
+          <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#4F46E5] to-[#2563EB]">
+            <span className="text-lg font-bold leading-none tracking-tighter text-white">H</span>
           </div>
-          <span className="font-display font-bold text-xl tracking-tight text-zinc-900">Resume<span className="text-[#10b981]">.ai</span></span>
+          <span className="text-xl font-bold tracking-tight text-slate-100">HireLens</span>
         </div>
         {setIsOpen && (
-          <button onClick={() => setIsOpen(false)} className="md:hidden text-zinc-500 hover:text-zinc-900 transition-colors">
+          <button type="button" aria-label="Close navigation" onClick={() => setIsOpen(false)} className="min-h-11 min-w-11 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors md:hidden">
             <X size={20} />
           </button>
         )}
@@ -51,21 +73,22 @@ export default function Sidebar({ isOpen = false, setIsOpen }: SidebarProps) {
             <Link
               key={item.path}
               to={item.path}
+              onClick={() => setIsOpen?.(false)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
                 isActive 
-                  ? 'bg-zinc-50 text-zinc-900 shadow-sm border border-zinc-200' 
-                  : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 border border-transparent'
+                  ? 'bg-slate-800 text-slate-100 shadow-sm border border-slate-700'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800 border border-transparent'
               }`}
             >
-              <item.icon size={18} className={isActive ? 'text-[#10b981]' : ''} />
+              <item.icon size={18} className={isActive ? 'text-[#4F46E5]' : ''} />
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-4 mt-auto border-t border-zinc-100">
-        <button onClick={() => navigate('/login')} className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-all duration-300">
+      <div className="p-4 mt-auto border-t border-slate-800">
+        <button type="button" onClick={handleLogout} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 transition-all duration-300 hover:bg-slate-800 hover:text-slate-100">
           <LogOut size={18} />
           Logout
         </button>

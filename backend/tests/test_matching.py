@@ -25,10 +25,10 @@ def test_invalid_data(client: TestClient, admin_user_token: str):
     )
     assert response.status_code == 422
 
-def test_unauthorized_user(client: TestClient, test_user_token: str):
+def test_regular_user_can_match_within_their_workspace(client: TestClient, test_user_token: str):
     response = client.post(
         "/api/v1/jd/match",
         json={"description": "We need Python developers"},
         headers={"Authorization": f"Bearer {test_user_token}"}
     )
-    assert response.status_code == 403
+    assert response.status_code == 200

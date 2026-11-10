@@ -1,96 +1,44 @@
-# API Documentation
+# HireLens API
 
-The Resume Parser AI exposes a RESTful API built with FastAPI. All requests and responses are standard `application/json` unless otherwise specified.
+The FastAPI service is mounted at `/api/v1`. JSON request examples below omit routine response fields. Authenticated requests use `Authorization: Bearer <access_token>`.
 
-## Base URL
-All API endpoints are mounted under:
-`http://localhost:8000/api/v1`
+## Authentication (`/auth`)
 
-## Authentication
+| Method and route | Request | Result |
+|---|---|---|
+| `POST /auth/register` | JSON: `email`, `password`, `full_name`, optional `company_name` | Creates an account. Password requires upper/lowercase, a number, a symbol, and at least 8 characters. |
+| `POST /auth/login` | JSON: `email`, `password` | Access and refresh tokens. |
+| `POST /auth/refresh` | JSON: `refresh_token` | Rotates the refresh token and returns a new token pair. |
+| `POST /auth/logout` | JSON: `refresh_token` | Revokes that refresh token. |
+| `GET /auth/me` | Bearer token | Current account. |
+| `PATCH /auth/me` | JSON: `full_name` | Updates the current account name. |
+| `POST /auth/password` | JSON: `current_password`, `new_password` | Changes password and revokes the account’s refresh tokens. |
 
-Most endpoints require a valid JWT Access Token.
-Provide the token in the `Authorization` header:
-```http
-Authorization: Bearer <your_jwt_access_token>
-```
+Authentication write routes are limited per source IP using Redis. Default limits are five login attempts, three registrations, thirty refreshes, and five password changes per 60-second window. A `429` response includes `Retry-After`; if Redis is unavailable these routes fail closed with `503`.
 
-## Endpoints
+## Candidates (`/candidates`)
 
-### 1. Authentication (`/auth`)
+- `GET /candidates?skip=0&limit=100&search=...` returns candidates visible to the account. `skip` is nonnegative, `limit` is 1–1000, and search matches name, email, or applied role. Administrators can see all workspaces; other users see records linked to their own resumes.
+- `GET /candidates/{candidate_id}` reads one visible candidate.
+- `DELETE /candidates/{candidate_id}` deletes one visible candidate.
 
-#### `POST /auth/login`
-Authenticates a user and returns an access token.
-- **Body**: `OAuth2PasswordRequestForm` (Form Data: `username`, `password`)
-- **Response**: 
-  ```json
-  {
-    "access_token": "eyJhb...",
-    "token_type": "bearer",
-    "user": {
-      "id": 1,
-      "email": "recruiter@example.com",
-      "role": "recruiter"
-    }
-  }
-  ```
+## Resumes (`/resumes`)
 
-#### `POST /auth/register`
-Registers a new user.
-- **Body (JSON)**: `{"email": "...", "password": "...", "full_name": "..."}`
-- **Response**: User object without password.
+- `POST /resumes/upload` accepts one `multipart/form-data` PDF or DOCX file, validates its type and size, scans it with configured ClamAV, stores it, and queues parsing. The upload response reflects the saved resume; parsing continues in a background task.
+- `GET /resumes` lists the current account’s resumes.
+- `GET /resumes/{resume_id}/file` downloads a resume when the account owns it or the requester is an administrator.
 
-### 2. Candidates (`/candidates`)
+The upload size limit defaults to 10 MiB and is configured with `MAX_UPLOAD_SIZE`. Uploads fail with `503` when malware scanning is unavailable.
 
-#### `GET /candidates`
-Retrieves a paginated list of candidates belonging to the authenticated user.
-- **Query Params**: `skip` (int, default: 0), `limit` (int, default: 100), `search` (string, optional)
-- **Response**: Array of Candidate objects.
+## Job matching (`/jd`)
 
-#### `DELETE /candidates/{candidate_id}`
-Deletes a specific candidate.
+`POST /jd/match` accepts JSON `{ "description": "..." }`, with a nonblank description up to 20,000 characters. It returns up to ten visible candidates with a heuristic keyword similarity score, matched skills, missing skills, and recommendations. The score is a ranking aid, not a validated ATS result.
 
-### 3. Resumes (`/resumes`)
+## Analytics and export
 
-#### `POST /resumes/upload`
-Uploads a resume for parsing.
-- **Content-Type**: `multipart/form-data`
-- **Body**: `file` (Binary PDF/DOCX)
-- **Response**: 
-  ```json
-  {
-    "id": 12,
-    "filename": "john_doe.pdf",
-    "status": "processing",
-    "message": "Resume uploaded successfully"
-  }
-  ```
+- `GET /analytics/dashboard` returns workspace-scoped candidate and parsed-resume counts, the observed average match score, and top extracted skills. Processing time is `null` because the service does not currently collect that measurement.
+- `GET /export/csv` and `GET /export/json` export only records visible to the current account; administrators can export all records.
 
-### 4. JD Matching (`/jd`)
+## Health and API schema
 
-#### `POST /jd/match`
-Matches candidates against a provided Job Description.
-- **Body (JSON)**: `{"job_description": "We need a Python engineer..."}`
-- **Response**: 
-  ```json
-  [
-    {
-      "candidate_id": 12,
-      "name": "John Doe",
-      "match_score": 85.5,
-      "matching_skills": ["Python", "FastAPI"]
-    }
-  ]
-  ```
-
-### 5. Export (`/export`)
-
-#### `GET /export/csv`
-Exports the user's candidates as a CSV file.
-- **Response**: `text/csv` downloadable file attachment.
-
-### 6. System (`/system`)
-
-Used for Kubernetes and infrastructure health probes.
-- **`GET /system/live`**: Liveness probe (200 OK).
-- **`GET /system/ready`**: Readiness probe (200 OK).
-- **`GET /system/health`**: Extensive system telemetry (RAM, Uptime).
+Health checks are under `/system` (`/live`, `/ready`, and `/health`). OpenAPI is served at `/api/v1/openapi.json`.

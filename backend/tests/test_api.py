@@ -6,7 +6,7 @@ from app.main import app
 def test_read_main(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"message": "Welcome to Resume Parser AI API"}
+    assert response.json() == {"message": "Welcome to HireLens API"}
 
 def test_register_user(client):
     response = client.post(

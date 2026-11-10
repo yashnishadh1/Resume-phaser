@@ -34,4 +34,4 @@ This document catalogs common errors encountered during local development or pro
 If the application crashes without obvious terminal errors:
 1. Hit `http://127.0.0.1:8000/api/v1/system/health` to verify the backend event loop is processing requests.
 2. Check `http://127.0.0.1:8000/metrics` to ensure Prometheus metrics are actively updating.
-3. Inspect `backend/resume_parser.db` if testing locally via SQLite (though Postgres is highly recommended).
+3. Check the configured database URL and migration status. For local SQLite setups, inspect the database path configured in `backend/.env`.

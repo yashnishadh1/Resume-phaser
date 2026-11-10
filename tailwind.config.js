@@ -51,14 +51,8 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Stitch Custom Colors
-        "stitch-background": "#111318",
-        "stitch-card": "#1a1e28",
-        "stitch-border": "#252a38",
-        "stitch-primary": "#4ade80",
-        "stitch-surface": "#13161e",
-        "stitch-surface-dim": "#111318",
-        "stitch-surface-bright": "#37393f",
+        "hirelens-indigo": "#4F46E5",
+        "hirelens-blue": "#2563EB",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -66,8 +60,8 @@ module.exports = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
-        display: ["Syne", "sans-serif"],
+        sans: ["Inter Variable", "Inter", "sans-serif"],
+        display: ["Inter Variable", "Inter", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       keyframes: {

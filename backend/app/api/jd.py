@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.database import get_db
@@ -11,7 +11,15 @@ from collections import Counter
 router = APIRouter()
 
 class JDMatchRequest(BaseModel):
-    description: str
+    description: str = Field(min_length=1, max_length=20000)
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Job description cannot be blank")
+        return normalized
 
 class JDMatchResponse(BaseModel):
     candidate_id: int

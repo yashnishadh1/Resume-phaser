@@ -2,7 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import JDMatcher from '../JDMatcher';
 import { renderWithProviders } from '../../test/utils';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 describe('JDMatcher Page', () => {
   it('handles matching workflow and API success', async () => {
@@ -23,8 +23,6 @@ describe('JDMatcher Page', () => {
 
   it('handles API failure state', async () => {
     const user = userEvent.setup();
-    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
-    
     renderWithProviders(<JDMatcher />);
     
     const textArea = screen.getByPlaceholderText(/Paste the full job description here/i);
@@ -34,9 +32,7 @@ describe('JDMatcher Page', () => {
     await user.click(matchButton);
     
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith('Failed to analyze Job Description. Please try again.');
+      expect(screen.getByRole('alert')).toHaveTextContent('Unable to analyze the job description. Please try again.');
     });
-    
-    alertMock.mockRestore();
   });
 });

@@ -1,4 +1,27 @@
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig } from 'axios';
+
+let sessionExpiryDispatched = false;
+let refreshRequest: Promise<string> | null = null;
+
+interface SessionTokens {
+  access_token: string;
+  refresh_token?: string;
+}
+
+interface RetriableRequest extends InternalAxiosRequestConfig {
+  _hirelensRetried?: boolean;
+}
+
+function expireSession() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('userFirstName');
+  localStorage.removeItem('userLastName');
+  if (!sessionExpiryDispatched) {
+    sessionExpiryDispatched = true;
+    window.dispatchEvent(new CustomEvent('hirelens:session-expired'));
+  }
+}
 
 // Base API configuration
 const apiClient = axios.create({
@@ -14,21 +37,53 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
+  async (error) => {
     return Promise.reject(error);
   }
 );
 
-// Response interceptor to handle 401 Unauthorized errors
 apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      // Clear invalid token and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('userFirstName');
-      localStorage.removeItem('userLastName');
-      window.location.href = '/login';
+  (response) => {
+    if (response.config.url?.endsWith('/auth/login')) sessionExpiryDispatched = false;
+    return response;
+  },
+  async (error) => {
+    const status = error.response?.status;
+    const originalRequest = error.config as RetriableRequest | undefined;
+    const refreshToken = localStorage.getItem('refresh_token');
+
+    if (
+      status === 401 && originalRequest && !originalRequest._hirelensRetried &&
+      refreshToken && !originalRequest.url?.endsWith('/auth/login')
+    ) {
+      originalRequest._hirelensRetried = true;
+      try {
+        if (!refreshRequest) {
+          refreshRequest = axios.post<SessionTokens>(
+            `${apiClient.defaults.baseURL}/auth/refresh`,
+            { refresh_token: refreshToken },
+          ).then(({ data }) => {
+            if (!data.access_token || !data.refresh_token) throw new Error('Session refresh failed');
+            localStorage.setItem('token', data.access_token);
+            localStorage.setItem('refresh_token', data.refresh_token);
+            return data.access_token;
+          }).finally(() => {
+            refreshRequest = null;
+          });
+        }
+        const accessToken = await refreshRequest;
+        originalRequest.headers.set('Authorization', `Bearer ${accessToken}`);
+        return apiClient(originalRequest);
+      } catch {
+        expireSession();
+        return Promise.reject(error);
+      }
+    }
+
+    if (status === 401 && localStorage.getItem('token')) {
+      expireSession();
+    } else if (status === 403) {
+      window.dispatchEvent(new CustomEvent('hirelens:access-denied'));
     }
     return Promise.reject(error);
   }

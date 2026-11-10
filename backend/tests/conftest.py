@@ -7,8 +7,12 @@ from app.main import app
 from app.db.database import Base, get_db
 from app.models.user import User, Role
 from app.core.security import get_password_hash, create_access_token
+from app.core.config import settings
 import uuid
 from sqlalchemy import event
+
+# Unit/integration tests must not require a running external Redis instance.
+settings.AUTH_RATE_LIMIT_ENABLED = False
 
 # Setup test database (in-memory SQLite for tests)
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -56,6 +60,7 @@ def client(db_session):
             pass
             
     app.dependency_overrides[get_db] = override_get_db
+
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

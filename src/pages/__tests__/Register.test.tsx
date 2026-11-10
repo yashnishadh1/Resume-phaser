@@ -2,9 +2,12 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Register from '../Register';
 import { renderWithProviders } from '../../test/utils';
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect } from 'vitest';
+import { http, HttpResponse } from 'msw';
+import { server } from '../../mocks/server';
 
 describe('Register Page', () => {
+  beforeEach(() => localStorage.clear());
   it('renders register form', () => {
     renderWithProviders(<Register />);
     
@@ -32,5 +35,17 @@ describe('Register Page', () => {
       expect(localStorage.getItem('token')).toBe('fake-jwt-token');
       expect(localStorage.getItem('userFirstName')).toBe('Jane');
     });
+  });
+
+  it('shows a useful registration validation error', async () => {
+    server.use(http.post('*/api/v1/auth/register', () => HttpResponse.json({ detail: 'Email is already registered' }, { status: 400 })));
+    const user = userEvent.setup();
+    renderWithProviders(<Register />);
+    await user.type(screen.getByLabelText(/Full Name/i), 'Taylor Example');
+    await user.type(screen.getByLabelText(/Email Address/i), 'used@example.com');
+    await user.type(screen.getByLabelText(/^Password$/i), 'StrongP@ssw0rd1');
+    await user.click(screen.getByRole('button', { name: /Create Account/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Email is already registered/i);
+    expect(localStorage.getItem('token')).toBeNull();
   });
 });

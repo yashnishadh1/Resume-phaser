@@ -14,7 +14,7 @@ describe('App Routing', () => {
     // AuthLayout redirects to /login if there's no token
     // The App is lazy loaded, wait for the spinner to disappear and Login to render
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Initialize Session/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Sign in/i })).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 
@@ -24,7 +24,7 @@ describe('App Routing', () => {
     render(<App />);
     
     await waitFor(() => {
-      expect(screen.getByText(/Welcome back/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Welcome, Jane/i })).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 });

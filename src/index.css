@@ -1,45 +1,46 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@fontsource-variable/geist";
+@import "@fontsource-variable/inter";
 
 @custom-variant dark (&:is(.dark *));
 
 @layer base {
   :root {
-    --background: oklch(0.98 0 0); /* zinc-50 */
-    --foreground: oklch(0.14 0 0); /* zinc-900 */
-    --card: oklch(1 0 0); /* white */
-    --card-foreground: oklch(0.14 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.14 0 0);
-    --primary: oklch(0.65 0.2 160.0); /* Vibrant Green */
-    --primary-foreground: oklch(0.98 0 0);
-    --secondary: oklch(0.96 0 0);
-    --secondary-foreground: oklch(0.14 0 0);
-    --muted: oklch(0.96 0 0);
-    --muted-foreground: oklch(0.55 0 0);
-    --accent: oklch(0.96 0 0);
-    --accent-foreground: oklch(0.14 0 0);
-    --destructive: oklch(0.6 0.2 22.2);
-    --destructive-foreground: oklch(0.98 0 0);
-    --border: oklch(0.9 0 0);
-    --input: oklch(0.9 0 0);
-    --ring: oklch(0.65 0.2 160.0);
+    --background: #0B1020;
+    --foreground: #F8FAFC;
+    --card: #111827;
+    --card-foreground: #F8FAFC;
+    --popover: #111827;
+    --popover-foreground: #F8FAFC;
+    --primary: #4F46E5;
+    --primary-foreground: #FFFFFF;
+    --secondary: #1E293B;
+    --secondary-foreground: #E2E8F0;
+    --muted: #1E293B;
+    --muted-foreground: #94A3B8;
+    --accent: #1E293B;
+    --accent-foreground: #F8FAFC;
+    --destructive: #E11D48;
+    --destructive-foreground: #FFFFFF;
+    --border: #334155;
+    --input: #334155;
+    --ring: #818CF8;
     --radius: 0.75rem;
     
-    --sidebar: oklch(1 0 0);
-    --sidebar-foreground: oklch(0.14 0 0);
-    --sidebar-primary: oklch(0.65 0.2 160.0);
-    --sidebar-primary-foreground: oklch(0.98 0 0);
-    --sidebar-accent: oklch(0.96 0 0);
-    --sidebar-accent-foreground: oklch(0.14 0 0);
-    --sidebar-border: oklch(0.9 0 0);
-    --sidebar-ring: oklch(0.65 0.2 160.0);
+    --sidebar: #111827;
+    --sidebar-foreground: #F8FAFC;
+    --sidebar-primary: #4F46E5;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #1E293B;
+    --sidebar-accent-foreground: #F8FAFC;
+    --sidebar-border: #334155;
+    --sidebar-ring: #818CF8;
   }
 
   body {
-    background-color: #FAFAFA;
-    color: #18181B;
+    background-color: #0B1020;
+    color: #F8FAFC;
+    font-family: "Inter Variable", Inter, system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
@@ -70,29 +71,35 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Premium Light Mode Utilities */
+/* Shared HireLens surfaces */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(17, 24, 39, 0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 4px 20px -8px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  box-shadow: 0 4px 20px -8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
+html { min-width: 320px; background: #0B1020; }
+body { min-width: 320px; min-height: 100vh; margin: 0; }
+button, a, input, textarea, select { touch-action: manipulation; }
+:focus-visible { outline: 2px solid #818CF8; outline-offset: 2px; }
+::selection { color: #fff; background: rgba(79, 70, 229, 0.55); }
+
 .text-gradient {
-  background: linear-gradient(135deg, #18181b 0%, #52525b 100%);
+  background: linear-gradient(135deg, #F8FAFC 0%, #CBD5E1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .text-gradient-primary {
-  background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #4F46E5 0%, #2563EB 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .hover-glow:hover {
-  box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.15);
+  box-shadow: 0 10px 30px -10px rgba(79, 70, 229, 0.25);
   transform: translateY(-2px);
 }
 
@@ -105,9 +112,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(148, 163, 184, 0.35);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(148, 163, 184, 0.55);
 }

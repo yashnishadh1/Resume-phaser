@@ -3,11 +3,11 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: resume_parser_db
+    container_name: hirelens_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env}
-      POSTGRES_DB: ${POSTGRES_DB:-resume_parser}
+      POSTGRES_DB: ${POSTGRES_DB:-hirelens}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,7 +18,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: resume_parser_redis
+    container_name: hirelens_redis
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -27,14 +27,14 @@ services:
 
   clamav:
     image: clamav/clamav:stable
-    container_name: resume_parser_clamav
+    container_name: hirelens_clamav
     volumes:
       - clamav_data:/var/lib/clamav
     restart: unless-stopped
 
   api:
     build: .
-    container_name: resume_parser_api
+    container_name: hirelens_api
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     volumes:
       - .:/app
@@ -43,7 +43,7 @@ services:
     environment:
       - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in backend/.env}
       - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS:-["http://localhost:5173","http://127.0.0.1:5173"]}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env}@db:5432/${POSTGRES_DB:-resume_parser}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env}@db:5432/${POSTGRES_DB:-hirelens}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -60,13 +60,13 @@ services:
 
   worker:
     build: .
-    container_name: resume_parser_worker
+    container_name: hirelens_worker
     command: celery -A app.jobs.celery_worker.celery_app worker --loglevel=info
     volumes:
       - .:/app
     environment:
       - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in backend/.env}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env}@db:5432/${POSTGRES_DB:-resume_parser}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env}@db:5432/${POSTGRES_DB:-hirelens}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0

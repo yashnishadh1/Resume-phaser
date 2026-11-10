@@ -1,6 +1,6 @@
 # System Architecture
 
-The Resume Parser AI platform is built upon a decoupled, service-oriented architecture designed for scalability, maintainability, and high observability.
+The HireLens platform is built upon a decoupled, service-oriented architecture designed for scalability, maintainability, and high observability.
 
 ## High-Level Architecture Diagram
 

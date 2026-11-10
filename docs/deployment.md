@@ -1,6 +1,6 @@
 # Deployment Guide
 
-The Resume Parser AI platform is fully containerized and intended to be deployed using Docker and Docker Compose. This guide details deploying the application to a single-node Linux production server (e.g., AWS EC2, DigitalOcean Droplet).
+The HireLens platform is fully containerized and intended to be deployed using Docker and Docker Compose. This guide details deploying the application to a single-node Linux production server (e.g., AWS EC2, DigitalOcean Droplet).
 
 ## Prerequisites
 - A Linux server (Ubuntu 22.04 LTS recommended)

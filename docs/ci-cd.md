@@ -1,39 +1,29 @@
-# CI/CD Documentation
+# CI and deployment checks
 
-We enforce code quality and stability via automated Continuous Integration (CI) and Continuous Deployment (CD) pipelines. Currently, this relies on GitHub Actions.
+GitHub Actions is defined in `.github/workflows/ci.yml` and `.github/workflows/security-scan.yml`.
 
-## Continuous Integration (CI)
+## CI workflow
 
-Every Pull Request against the `main` branch triggers the CI pipeline. The pipeline executes two parallel jobs:
+The CI workflow runs for pushes to `main` and `master`, and for pull requests targeting either branch. It installs the frontend and backend dependencies, runs npm and pip dependency audits, runs ESLint, runs the frontend coverage command, runs pytest with an 80% backend coverage gate, and builds the backend Docker image after the test jobs succeed.
 
-### 1. Frontend Job
-- Uses a `node:20` environment.
-- **Linting**: Executes `npm run lint` utilizing ESLint to enforce React and TypeScript best practices.
-- **Unit & Integration Tests**: Executes `npm run test -- --coverage`.
-- **Quality Gates**: The Vitest configuration explicitly defines thresholds in `vite.config.ts`:
-  - `lines`: 70%
-  - `functions`: 65%
-  - `branches`: 70%
-  - `statements`: 70%
-- If coverage falls below these thresholds, the pipeline **fails** and the PR cannot be merged.
+The Vite coverage thresholds are currently 70% lines, 65% functions, 70% branches, and 70% statements. The product acceptance targets in the HireLens upgrade brief are higher; the checked-in suite must grow before those goals can be claimed. CI is expected to fail when a configured gate is below threshold.
 
-### 2. Backend Job
-- Uses a `python:3.13` environment.
-- Provisions ephemeral PostgreSQL and Redis service containers for integration testing.
-- **Testing**: Executes `pytest tests/ --cov=app --cov-fail-under=80`.
-- **Quality Gates**: Backend coverage must remain above `80%`.
+## Scheduled dependency scan
 
-## Continuous Deployment (CD)
+The security workflow runs npm audit and pip-audit on pushes and pull requests to `main`, plus its scheduled daily scan. Review audit output and update dependencies through reviewed lockfile changes.
 
-Once code is successfully merged into `main` and all CI checks pass, a deployment pipeline triggers.
+## Deployment
 
-### Frontend CD
-1. The pipeline checks out the repository.
-2. Runs `npm run build` to generate the Vite production bundle.
-3. Syncs the resulting `dist/` directory to the production static host (e.g., S3, Vercel).
+CI validates the backend Docker build. This repository does not currently publish a container, apply production migrations, or deploy the frontend/backend automatically. Vercel deployment is configured separately through `vercel.json` and the project’s Vercel settings. Configure production environment variables and deploy only through the selected hosting providers’ release process.
 
-### Backend CD
-1. Triggers a web-hook to the production server or builds a new Docker Image.
-2. Pushes the Docker Image to an Elastic Container Registry (ECR).
-3. Restarts the Docker Compose cluster (or Kubernetes Pods) via a rolling update to avoid downtime.
-4. Executes Alembic migrations (`alembic upgrade head`) automatically.
+## Local checks
+
+```bash
+npm ci
+npm run lint
+npm run build
+npm run coverage
+cd backend
+python -m pytest --cov=app --cov-report=term-missing
+docker build -t hirelens-api:test .
+```

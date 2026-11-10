@@ -3,12 +3,12 @@ from typing import Optional, List
 import ast
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "Resume Parser AI"
+    PROJECT_NAME: str = "HireLens API"
     API_V1_STR: str = "/api/v1"
     
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: Optional[str] = None
-    POSTGRES_DB: str = "resume_parser"
+    POSTGRES_DB: str = "hirelens"
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: str = "5432"
     
@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     
     UPLOAD_DIR: str = "./uploads"
     MAX_UPLOAD_SIZE: int = 10485760 # 10MB
+    AUTH_RATE_LIMIT_ENABLED: bool = True
+    AUTH_LOGIN_RATE_LIMIT: int = 5
+    AUTH_REGISTER_RATE_LIMIT: int = 3
+    AUTH_REFRESH_RATE_LIMIT: int = 30
+    AUTH_PASSWORD_RATE_LIMIT: int = 5
+    AUTH_RATE_LIMIT_WINDOW_SECONDS: int = 60
 
     CLAMAV_HOST: Optional[str] = None
     CLAMAV_PORT: int = 3310

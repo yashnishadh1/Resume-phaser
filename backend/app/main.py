@@ -15,6 +15,9 @@ from asgi_correlation_id import CorrelationIdMiddleware, correlation_id
 from prometheus_fastapi_instrumentator import Instrumentator
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
+import redis
+from redis.exceptions import RedisError
+from starlette.concurrency import run_in_threadpool
 
 # Setup structured JSON logging
 logger = logging.getLogger(__name__)
@@ -49,6 +52,55 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
+
+rate_limit_redis = redis.Redis.from_url(
+    settings.REDIS_URL, socket_connect_timeout=1, socket_timeout=1
+)
+
+AUTH_RATE_LIMITS = {
+    f"{settings.API_V1_STR}/auth/login": settings.AUTH_LOGIN_RATE_LIMIT,
+    f"{settings.API_V1_STR}/auth/register": settings.AUTH_REGISTER_RATE_LIMIT,
+    f"{settings.API_V1_STR}/auth/refresh": settings.AUTH_REFRESH_RATE_LIMIT,
+    f"{settings.API_V1_STR}/auth/password": settings.AUTH_PASSWORD_RATE_LIMIT,
+}
+
+
+def increment_auth_rate_limit(key: str, window_seconds: int) -> int:
+    with rate_limit_redis.pipeline() as pipeline:
+        pipeline.incr(key)
+        pipeline.expire(key, window_seconds)
+        count, _ = pipeline.execute()
+    return int(count)
+
+
+@app.middleware("http")
+async def limit_auth_requests(request: Request, call_next):
+    path = request.url.path
+    if not settings.AUTH_RATE_LIMIT_ENABLED or request.method != "POST" or path not in AUTH_RATE_LIMITS:
+        return await call_next(request)
+
+    address = request.client.host if request.client else "unknown"
+    key = f"hirelens:auth-limit:{path}:{address}"
+    try:
+        count = await run_in_threadpool(
+            increment_auth_rate_limit,
+            key,
+            settings.AUTH_RATE_LIMIT_WINDOW_SECONDS,
+        )
+    except RedisError:
+        logger.error("Authentication rate limiter is unavailable")
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "Authentication service is temporarily unavailable"},
+        )
+
+    if count > AUTH_RATE_LIMITS[path]:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Too many authentication attempts. Please try again later."},
+            headers={"Retry-After": str(settings.AUTH_RATE_LIMIT_WINDOW_SECONDS)},
+        )
+    return await call_next(request)
 
 # CORS configuration
 origins = settings.BACKEND_CORS_ORIGINS if hasattr(settings, 'BACKEND_CORS_ORIGINS') and settings.BACKEND_CORS_ORIGINS else []
@@ -142,7 +194,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to Resume Parser AI API"}
+    return {"message": "Welcome to HireLens API"}
 
 from app.api import auth, resumes, candidates, analytics, jd, export, system
 from alembic.config import Config

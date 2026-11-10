@@ -2,13 +2,17 @@ name: CI/CD Security & Build
 
 on:
   push:
-    branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
 
 jobs:
   backend-security:
     runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: "ci-only-not-for-production"
+      DATABASE_URL: "sqlite:///./ci.db"
+      POSTGRES_PASSWORD: "ci-unused"
+      UPLOAD_DIR: "./uploads"
     steps:
       - uses: actions/checkout@v4
       

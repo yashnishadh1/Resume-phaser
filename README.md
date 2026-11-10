@@ -1,85 +1,61 @@
-# Resume Parser AI 🚀
+# HireLens
 
-[![Frontend Tests](https://img.shields.io/badge/Frontend%20Coverage-81%25-success)](docs/ci-cd.md)
-[![Backend Tests](https://img.shields.io/badge/Backend%20Coverage-82%25-success)](docs/ci-cd.md)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+**See Your Potential. Land Your Next Opportunity.**
 
-An enterprise-grade, full-stack Resume Parsing Applicant Tracking System (ATS). It leverages Python's NLP capabilities to extract structured data from resumes (PDFs/DOCXs) and provides a sleek, modern React frontend for recruiters to match candidates against Job Descriptions (JDs).
+HireLens provides resume analysis, ATS-oriented signals, skill extraction, and job-description matching for recruiters. The current matching engine is heuristic and should support human review, not replace it.
 
-## 🌟 Key Features
+## Product
 
-- **Automated Resume Parsing**: Extracts Name, Email, Phone, Skills, and Education from raw PDF/DOCX files.
-- **JD Matching Engine**: Scores and ranks parsed candidates against Job Descriptions using intelligent NLP extraction.
-- **Role-Based Access Control**: Secure JWT authentication ensuring data isolation between recruiters.
-- **Comprehensive Analytics**: Dashboard visualizations of parsing success rates and candidate distributions.
-- **CSV Export**: Securely export candidate data for offline processing.
-- **Production Observability**: Built-in Sentry integration, structured JSON logging, and Prometheus metrics.
+- Upload PDF or DOCX resumes for validation, malware scanning, and background parsing.
+- Review candidate details, experience, skills, status, and match scores.
+- Search and filter candidates, inspect profiles, delete records, and export candidate data.
+- Compare a job description with candidate profiles.
 
-## 🏗️ Architecture Overview
+## Stack
 
-The system follows a modern decoupled architecture:
-- **Frontend**: React 18, Vite, Tailwind CSS, Base UI, and React Query for intelligent data fetching and caching.
-- **Backend**: FastAPI (Python 3.13), SQLAlchemy 2.0, PostgreSQL, and Alembic for migrations.
-- **Asynchronous Tasks**: Celery and Redis to handle heavy parsing tasks and OCR fallbacks in the background.
+- Frontend: React, TypeScript, Vite, Tailwind CSS, React Query, Vitest, and React Testing Library.
+- Backend: FastAPI, SQLAlchemy, PostgreSQL, Alembic, Celery, Redis, and ClamAV.
+- Deployment: Vercel frontend configuration and Docker Compose backend services.
 
-For a detailed view of the system components, see the [Architecture Documentation](docs/architecture.md).
+## Local development
 
-## 📚 Documentation
+### Frontend
 
-Detailed documentation is available in the `docs/` directory:
-
-1. [Architecture & Design](docs/architecture.md)
-2. [API Reference](docs/api.md)
-3. [Security Model](docs/security.md)
-4. [Deployment Guide](docs/deployment.md)
-5. [Local Development](docs/development.md)
-6. [CI/CD Pipelines](docs/ci-cd.md)
-7. [Troubleshooting](docs/troubleshooting.md)
-
-## 🚀 Quick Start (Local Development)
-
-### Prerequisites
-- Node.js (v20+)
-- Python (3.13+)
-- PostgreSQL
-- Redis
-
-### 1. Clone & Database Setup
 ```bash
-git clone https://github.com/yashnishadh1/Resume-phaser.git
-cd Resume-phaser
-```
-Ensure you have a local PostgreSQL instance running and create a database named `resume_parser`.
-
-### 2. Backend Setup
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate  # Windows
-pip install -r requirements.txt
-alembic upgrade head
-python start_backend.bat
-```
-
-### 3. Frontend Setup
-```bash
-npm install
+npm ci
 npm run dev
 ```
 
-For detailed instructions, refer to the [Local Development Guide](docs/development.md).
+Set `VITE_API_BASE_URL` when the API is not available at `http://localhost:8000/api/v1`. Set `VITE_SITE_URL` to the canonical public origin for production metadata.
 
-## 🧪 Testing
+### Backend
 
-We maintain strict coverage thresholds (>70%) across the stack.
+Create `backend/.env` from `backend/.env.example`, set a strong `SECRET_KEY` and database credentials, then start the services from `backend/`:
 
-- **Frontend**: Vitest and React Testing Library (`npm run test -- --coverage`)
-- **Backend**: Pytest and HTTPX (`pytest tests/ --cov=app`)
+```bash
+docker compose up --build
+```
 
-See the [CI/CD Documentation](docs/ci-cd.md) for automated pipeline details.
+The API listens on `127.0.0.1:8000` by default. Resume uploads require the ClamAV service. Follow [backend development](docs/development.md) for alternatives and setup details.
 
-## 🤝 Contributing
-1. Create a Feature Branch (`git checkout -b feature/AmazingFeature`)
-2. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-3. Push to the Branch (`git push origin feature/AmazingFeature`)
-4. Open a Pull Request
+## Verification
+
+```bash
+npm run lint
+npm run build
+npm run test -- --run
+npm run coverage
+```
+
+Backend tests use pytest and an isolated SQLite fixture:
+
+```bash
+cd backend
+python -m pytest --cov=app --cov-report=term-missing
+```
+
+Coverage status is generated from the current suite and is not represented by static badges. Review [CI/CD](docs/ci-cd.md), [security](docs/security.md), [deployment](docs/deployment.md), [architecture](docs/architecture.md), and [API documentation](docs/api.md).
+
+## Production setup still required
+
+Before launch, configure the public domain, backend origin, database and Redis services, ClamAV, support contact, retention/deletion procedures, monitoring, and legal business details. The Privacy Policy and Terms pages contain clearly marked operator placeholders that need confirmation and legal review.

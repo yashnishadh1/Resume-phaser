@@ -1,6 +1,6 @@
 # Local Development Guide
 
-This document outlines how to set up the Resume Parser AI platform on your local machine for active development.
+This document outlines how to set up the HireLens platform on your local machine for active development.
 
 ## Prerequisites
 - Node.js (v20+)
@@ -13,9 +13,9 @@ This document outlines how to set up the Resume Parser AI platform on your local
 
 Ensure PostgreSQL is running. Open `psql` or pgAdmin and create a database:
 ```sql
-CREATE DATABASE resume_parser;
+CREATE DATABASE hirelens;
 ```
-Ensure the default user (`postgres`) with password (`postgres`) has access. If your local credentials differ, update the `.env` file in the backend.
+Configure a local database user and strong password in `backend/.env`, based on `.env.example`. Do not use production credentials for local development.
 
 ## 2. Backend Setup
 
@@ -38,8 +38,7 @@ pip install -r requirements.txt
 alembic upgrade head
 
 # Start the development server
-python start_backend.bat
-# Or run manually: uvicorn app.main:app --reload
+uvicorn app.main:app --reload
 ```
 
 The backend API will be available at `http://127.0.0.1:8000`. 

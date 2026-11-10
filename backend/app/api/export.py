@@ -7,19 +7,25 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.api import deps
 from app.models.user import User
-from app.models.resume import Candidate
+from app.models.resume import Candidate, Resume
 import io
 import csv
 import json
 
 router = APIRouter()
 
+def candidates_for_user(db: Session, current_user: User):
+    query = db.query(Candidate)
+    if not current_user.role or current_user.role.name != "Admin":
+        query = query.join(Resume).filter(Resume.uploader_id == current_user.id)
+    return query.all()
+
 @router.get("/csv")
 def export_csv(
     db: Session = Depends(get_db),
-    current_user: User = Depends(deps.get_current_admin_user)
+    current_user: User = Depends(deps.get_current_active_user)
 ):
-    candidates = db.query(Candidate).all()
+    candidates = candidates_for_user(db, current_user)
     
     stream = io.StringIO()
     writer = csv.writer(stream)
@@ -38,9 +44,9 @@ def export_csv(
 @router.get("/json")
 def export_json(
     db: Session = Depends(get_db),
-    current_user: User = Depends(deps.get_current_admin_user)
+    current_user: User = Depends(deps.get_current_active_user)
 ):
-    candidates = db.query(Candidate).all()
+    candidates = candidates_for_user(db, current_user)
     data = []
     for c in candidates:
         data.append({
