@@ -1,14 +1,17 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Candidates from '../Candidates';
 import { renderWithProviders } from '../../test/utils';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { http, HttpResponse } from 'msw';
+import { server } from '../../mocks/server';
+
+afterEach(() => vi.restoreAllMocks());
 
 describe('Candidates Page', () => {
   it('renders and loads candidates successfully', async () => {
     renderWithProviders(<Candidates />);
-    
-    // Initial loading state might be too fast to catch, wait for data
+
     await waitFor(() => {
       expect(screen.getByText('John Doe')).toBeInTheDocument();
       expect(screen.getByText('Jane Smith')).toBeInTheDocument();
@@ -18,70 +21,81 @@ describe('Candidates Page', () => {
   it('handles search input', async () => {
     const user = userEvent.setup();
     renderWithProviders(<Candidates />);
-    
-    const searchInput = screen.getByPlaceholderText(/Search by name/i);
-    await user.type(searchInput, 'empty');
-    
-    await waitFor(() => {
-      expect(screen.getByText(/No candidates found/i)).toBeInTheDocument();
-    });
+
+    await user.type(screen.getByPlaceholderText(/Search by name/i), 'empty');
+    await waitFor(() => expect(screen.getByText(/No candidates found/i)).toBeInTheDocument());
   });
 
   it('handles error state on load', async () => {
     const user = userEvent.setup();
     renderWithProviders(<Candidates />);
-    
-    const searchInput = screen.getByPlaceholderText(/Search by name/i);
-    await user.type(searchInput, 'error');
-    
-    await waitFor(() => {
-      expect(screen.getByText(/Failed to load candidates/i)).toBeInTheDocument();
-    });
+
+    await user.type(screen.getByPlaceholderText(/Search by name/i), 'error');
+    await waitFor(() => expect(screen.getByText(/Failed to load candidates/i)).toBeInTheDocument());
   });
 
-  it('handles export CSV click', async () => {
-    // Mock window.URL.createObjectURL
-    window.URL.createObjectURL = vi.fn(() => 'blob:mock');
+  it('exports candidates as CSV', async () => {
+    vi.spyOn(window.URL, 'createObjectURL').mockReturnValue('blob:mock');
+    const downloadClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     const user = userEvent.setup();
     renderWithProviders(<Candidates />);
-    
-    await waitFor(() => {
-      expect(screen.getByText('John Doe')).toBeInTheDocument();
-    });
-    
+
+    await waitFor(() => expect(screen.getByText('John Doe')).toBeInTheDocument());
     const exportButton = screen.getByRole('button', { name: /Export CSV/i });
     await user.click(exportButton);
-    
-    await waitFor(() => {
-      expect(exportButton).not.toHaveTextContent(/Exporting/i);
-    });
+    await waitFor(() => expect(exportButton).not.toHaveTextContent(/Exporting/i));
+    expect(downloadClick).toHaveBeenCalledOnce();
   });
 
-  it('handles delete candidate click', async () => {
+  it('renders the requested columns and filters candidates by status', async () => {
     const user = userEvent.setup();
     renderWithProviders(<Candidates />);
-    
-    await waitFor(() => {
-      expect(screen.getByText('John Doe')).toBeInTheDocument();
-    });
-    
-    // The delete button is a lucide icon within a button.
-    // Assuming the last button in the row or one with class text-red-500 is delete
-    // Wait, the delete button has an onClick. Let's just click the first button that might be delete.
-    // Or we can find by aria-label if it has one. Let's find the button with Trash icon or just the last button.
-    // Since we don't know the exact aria-label, let's look for button inside the table cell.
-    const tableCells = screen.getAllByRole('cell');
-    const actionCell = tableCells.find(cell => cell.querySelector('button.text-red-500'));
-    const deleteBtn = actionCell?.querySelector('button') as HTMLButtonElement;
-    
-    if (deleteBtn) {
-      await user.click(deleteBtn);
-    }
-    
-    await waitFor(() => {
-      // The invalidation happens and list is refetched
-      // The MSW handler for delete returns success
-      expect(screen.getByText('John Doe')).toBeInTheDocument();
-    });
+
+    await waitFor(() => expect(screen.getByText('John Doe')).toBeInTheDocument());
+    const table = screen.getByRole('table');
+    expect(within(table).getAllByRole('columnheader').map((header) => header.textContent?.trim())).toEqual([
+      'Candidate Info', 'Applied Role', 'Experience', 'Match', 'Status', 'Actions',
+    ]);
+    const johnRow = within(table).getByRole('row', { name: /John Doe/ });
+    expect(within(johnRow).getAllByRole('cell')).toHaveLength(6);
+    expect(within(johnRow).getByText('Engineer')).toBeInTheDocument();
+    expect(within(johnRow).getByText('5 years')).toBeInTheDocument();
+    expect(within(johnRow).getByText('95%')).toBeInTheDocument();
+    expect(within(johnRow).getByText('Completed')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: /filter candidates by status/i }), 'Processing');
+    expect(screen.queryByText('John Doe')).not.toBeInTheDocument();
+    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+  });
+
+  it('opens and closes a candidate profile from its row actions', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Candidates />);
+
+    await waitFor(() => expect(screen.getByText('John Doe')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Actions for John Doe' }));
+    await user.click(screen.getByRole('button', { name: /View Profile/i }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('John Doe');
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('confirms a candidate delete action', async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const deleteRequest = vi.fn();
+    server.use(http.delete('*/api/v1/candidates/:id', ({ params }) => {
+      deleteRequest(params.id);
+      return HttpResponse.json({ status: 'success' });
+    }));
+    renderWithProviders(<Candidates />);
+
+    await waitFor(() => expect(screen.getByText('John Doe')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Actions for John Doe' }));
+    await user.click(screen.getByRole('button', { name: /^Delete$/i }));
+    expect(confirm).toHaveBeenCalledWith('Are you sure you want to delete this candidate?');
+    await waitFor(() => expect(deleteRequest).toHaveBeenCalledWith('1'));
+    await waitFor(() => expect(screen.getByText('John Doe')).toBeInTheDocument());
   });
 });

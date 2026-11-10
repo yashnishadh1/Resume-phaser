@@ -22,8 +22,8 @@ export const handlers = [
     if (search === 'empty') return HttpResponse.json([]);
     if (search === 'error') return new HttpResponse('{"detail":"Failed"}', { status: 500 });
     return HttpResponse.json([
-      { id: 1, full_name: 'John Doe', email: 'john@example.com', skills: [], match_score: 95, experience_years: 5 },
-      { id: 2, full_name: 'Jane Smith', email: 'jane@example.com', skills: [], match_score: 85, experience_years: 3 }
+      { id: 1, full_name: 'John Doe', email: 'john@example.com', skills: [], match_score: 95, experience_years: 5, applied_role: 'Engineer', status: 'Completed' },
+      { id: 2, full_name: 'Jane Smith', email: 'jane@example.com', skills: [], match_score: 85, experience_years: 3, applied_role: 'Designer', status: 'Processing' }
     ]);
   }),
   http.delete('*/api/v1/candidates/:id', () => {

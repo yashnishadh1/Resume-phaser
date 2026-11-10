@@ -10,12 +10,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
@@ -24,10 +18,24 @@ import { useCandidates, useDeleteCandidate } from "@/api/useCandidates";
 
 export default function Candidates() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
   const { data: candidates, isLoading, error } = useCandidates(searchTerm);
   const deleteCandidate = useDeleteCandidate();
   const [selectedCandidate, setSelectedCandidate] = useState<import("@/api/useCandidates").Candidate | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [actionMenuCandidateId, setActionMenuCandidateId] = useState<number | null>(null);
+
+  const availableStatuses = Array.from(
+    new Set(
+      (candidates || [])
+        .map((candidate) => candidate.status?.trim())
+        .filter((status): status is string => Boolean(status)),
+    ),
+  ).sort((a, b) => a.localeCompare(b));
+  const visibleCandidates = (candidates || []).filter((candidate) =>
+    statusFilter === "all" || (candidate.status || "Pending").toLowerCase() === statusFilter.toLowerCase(),
+  );
 
   const handleDelete = (id: number) => {
     if (window.confirm("Are you sure you want to delete this candidate?")) {
@@ -63,7 +71,13 @@ export default function Candidates() {
           <p className="text-zinc-500">Manage and review parsed candidates.</p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors text-zinc-900 font-medium text-sm">
+          <button
+            type="button"
+            aria-expanded={isFilterOpen}
+            aria-controls="candidate-filters"
+            onClick={() => setIsFilterOpen((open) => !open)}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg hover:bg-zinc-100 transition-colors text-zinc-900 font-medium text-sm"
+          >
             <Filter size={16} />
             Filters
           </button>
@@ -90,17 +104,39 @@ export default function Candidates() {
               className="w-full bg-zinc-50-bright border border-zinc-200 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-stitch-primary focus:ring-1 focus:ring-stitch-primary transition-all text-zinc-900 placeholder:text-zinc-500"
             />
           </div>
+          {isFilterOpen && (
+            <div id="candidate-filters" className="mt-3 flex flex-wrap items-center gap-3">
+              <label htmlFor="candidate-status-filter" className="text-sm font-medium text-zinc-700">
+                Filter by status
+              </label>
+              <select
+                id="candidate-status-filter"
+                aria-label="Filter candidates by status"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900"
+              >
+                <option value="all">All statuses</option>
+                {availableStatuses.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+                {!availableStatuses.some((status) => status?.toLowerCase() === "pending") && (
+                  <option value="pending">Pending</option>
+                )}
+              </select>
+            </div>
+          )}
         </div>
 
-        <Table>
+        <Table className="min-w-[860px] table-fixed">
           <TableHeader className="bg-zinc-50/50">
             <TableRow className="border-zinc-200 hover:bg-transparent">
-              <TableHead className="text-zinc-500 font-semibold">Candidate Info</TableHead>
-              <TableHead className="text-zinc-500 font-semibold">Applied Role</TableHead>
-              <TableHead className="text-zinc-500 font-semibold">Experience</TableHead>
-              <TableHead className="text-zinc-500 font-semibold">Match</TableHead>
-              <TableHead className="text-zinc-500 font-semibold">Status</TableHead>
-              <TableHead className="text-right text-zinc-500 font-semibold">Actions</TableHead>
+              <TableHead scope="col" className="w-[240px] text-zinc-500 font-semibold">Candidate Info</TableHead>
+              <TableHead scope="col" className="w-[180px] text-zinc-500 font-semibold">Applied Role</TableHead>
+              <TableHead scope="col" className="w-[130px] text-zinc-500 font-semibold">Experience</TableHead>
+              <TableHead scope="col" className="w-[130px] text-zinc-500 font-semibold">Match</TableHead>
+              <TableHead scope="col" className="w-[120px] text-zinc-500 font-semibold">Status</TableHead>
+              <TableHead scope="col" className="w-[60px] text-right text-zinc-500 font-semibold">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -116,14 +152,14 @@ export default function Candidates() {
                   Failed to load candidates.
                 </TableCell>
               </TableRow>
-            ) : candidates?.length === 0 ? (
+            ) : visibleCandidates.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-zinc-500">
-                  No candidates found.
+                  {candidates?.length ? "No candidates match these filters." : "No candidates found."}
                 </TableCell>
               </TableRow>
             ) : (
-              candidates?.map((candidate) => (
+              visibleCandidates.map((candidate) => (
                 <TableRow key={candidate.id} className="border-zinc-200 hover:bg-zinc-50 border-b transition-colors group">
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -160,26 +196,43 @@ export default function Candidates() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="p-2 hover:bg-zinc-50-bright rounded-lg transition-colors outline-none text-zinc-500">
+                    <div className="relative inline-block">
+                      <button
+                        type="button"
+                        aria-label={`Actions for ${candidate.full_name}`}
+                        aria-expanded={actionMenuCandidateId === candidate.id}
+                        aria-controls={`candidate-actions-${candidate.id}`}
+                        onClick={() => setActionMenuCandidateId((id) => id === candidate.id ? null : candidate.id)}
+                        className="p-2 hover:bg-zinc-50-bright rounded-lg transition-colors outline-none text-zinc-500"
+                      >
                         <MoreVertical size={16} />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-zinc-50 border-zinc-200 text-zinc-900">
-                        <DropdownMenuItem 
-                          className="cursor-pointer hover:bg-zinc-100 focus:bg-zinc-100 flex items-center gap-2"
-                          onClick={() => setSelectedCandidate(candidate)}
-                        >
-                          <Eye size={14} /> View Profile
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="cursor-pointer text-red-400 hover:text-red-300 hover:bg-zinc-100 focus:bg-zinc-100 flex items-center gap-2 focus:text-red-300"
-                          onClick={() => handleDelete(candidate.id)}
-                          disabled={deleteCandidate.isPending}
-                        >
-                          <Trash size={14} /> {deleteCandidate.isPending ? 'Deleting...' : 'Delete'}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      </button>
+                      {actionMenuCandidateId === candidate.id && (
+                        <div id={`candidate-actions-${candidate.id}`} role="group" aria-label={`${candidate.full_name} actions`} className="absolute right-0 top-full z-20 min-w-40 rounded-lg border border-zinc-200 bg-white p-1 text-left shadow-lg">
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100"
+                            onClick={() => {
+                              setSelectedCandidate(candidate);
+                              setActionMenuCandidateId(null);
+                            }}
+                          >
+                            <Eye size={14} /> View Profile
+                          </button>
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-sm text-red-600 hover:bg-zinc-100 focus:bg-zinc-100 disabled:opacity-50"
+                            onClick={() => {
+                              handleDelete(candidate.id);
+                              setActionMenuCandidateId(null);
+                            }}
+                            disabled={deleteCandidate.isPending}
+                          >
+                            <Trash size={14} /> {deleteCandidate.isPending ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
