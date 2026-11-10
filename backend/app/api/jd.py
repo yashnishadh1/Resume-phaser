@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.api import deps
 from app.models.user import User
-from app.models.resume import Candidate, CandidateSkill
+from app.models.resume import Candidate, Resume
 import math
 from collections import Counter
 
@@ -27,7 +27,12 @@ def match_jd(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user)
 ):
-    candidates = db.query(Candidate).all()
+    candidates_query = db.query(Candidate)
+    if not current_user.role or current_user.role.name != "Admin":
+        candidates_query = candidates_query.join(Resume).filter(
+            Resume.uploader_id == current_user.id
+        )
+    candidates = candidates_query.all()
     if not candidates:
         return []
         

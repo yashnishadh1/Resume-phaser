@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_PASSWORD: Optional[str] = None
     POSTGRES_DB: str = "resume_parser"
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: str = "5432"
@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     
     UPLOAD_DIR: str = "./uploads"
     MAX_UPLOAD_SIZE: int = 10485760 # 10MB
+
+    CLAMAV_HOST: Optional[str] = None
+    CLAMAV_PORT: int = 3310
+    CLAMAV_TIMEOUT: int = 30
     
     SENTRY_DSN: Optional[str] = None
 
@@ -35,4 +39,6 @@ class Settings(BaseSettings):
 settings = Settings()
 
 if not settings.DATABASE_URL:
+    if not settings.POSTGRES_PASSWORD:
+        raise ValueError("Set DATABASE_URL or configure POSTGRES_PASSWORD")
     settings.DATABASE_URL = f"postgresql://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}"

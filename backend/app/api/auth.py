@@ -10,8 +10,13 @@ from app.api import deps
 import secrets
 from datetime import datetime, timezone
 import hashlib
+from pydantic import BaseModel, Field
 
 router = APIRouter()
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str = Field(min_length=32, max_length=256)
 
 @router.post("/register", response_model=UserResponse)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
@@ -75,8 +80,8 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
     }
 
 @router.post("/refresh", response_model=Token)
-def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
-    hashed_token = hashlib.sha256(refresh_token.encode()).hexdigest()
+def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
+    hashed_token = hashlib.sha256(request.refresh_token.encode()).hexdigest()
     db_token = db.query(RefreshToken).filter(RefreshToken.token == hashed_token).first()
     
     if not db_token or db_token.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
@@ -115,8 +120,8 @@ def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
     }
 
 @router.post("/logout")
-def logout(refresh_token: str, db: Session = Depends(get_db)):
-    hashed_token = hashlib.sha256(refresh_token.encode()).hexdigest()
+def logout(request: RefreshTokenRequest, db: Session = Depends(get_db)):
+    hashed_token = hashlib.sha256(request.refresh_token.encode()).hexdigest()
     db_token = db.query(RefreshToken).filter(RefreshToken.token == hashed_token).first()
     if db_token:
         db.delete(db_token)

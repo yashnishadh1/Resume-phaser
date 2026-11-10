@@ -9,6 +9,7 @@ import sentry_sdk
 from app.core.config import settings
 import os
 import logging
+from starlette.responses import JSONResponse as StarletteJSONResponse
 from pythonjsonlogger import jsonlogger
 from asgi_correlation_id import CorrelationIdMiddleware, correlation_id
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -55,17 +56,72 @@ origins = settings.BACKEND_CORS_ORIGINS if hasattr(settings, 'BACKEND_CORS_ORIGI
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
+
+class UploadRequestLimitMiddleware:
+    """Bound upload request bodies before multipart parsing allocates resources."""
+
+    def __init__(self, app, max_bytes: int):
+        self.app = app
+        # Leave room for multipart boundaries and headers around the file bytes.
+        self.max_bytes = max_bytes + 1024 * 1024
+
+    async def __call__(self, scope, receive, send):
+        if not (
+            scope["type"] == "http"
+            and scope.get("method") == "POST"
+            and scope.get("path") == f"{settings.API_V1_STR}/resumes/upload"
+        ):
+            await self.app(scope, receive, send)
+            return
+
+        headers = dict(scope.get("headers", []))
+        try:
+            content_length = int(headers.get(b"content-length", b"0"))
+        except ValueError:
+            content_length = 0
+        if content_length > self.max_bytes:
+            await StarletteJSONResponse(
+                {"detail": "Upload request too large"}, status_code=413
+            )(scope, receive, send)
+            return
+
+        received = 0
+        too_large = False
+
+        async def limited_receive():
+            nonlocal received, too_large
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > self.max_bytes:
+                    too_large = True
+                    return {"type": "http.disconnect"}
+            return message
+
+        async def limited_send(message):
+            if not too_large:
+                await send(message)
+
+        try:
+            await self.app(scope, limited_receive, limited_send)
+        except Exception:
+            if not too_large:
+                raise
+        if too_large:
+            await StarletteJSONResponse(
+                {"detail": "Upload request too large"}, status_code=413
+            )(scope, receive, send)
 
 # Add correlation ID middleware
 app.add_middleware(CorrelationIdMiddleware)
 
-# Expose Prometheus metrics
-Instrumentator().instrument(app).expose(app)
+# Collect metrics internally; do not publish an unauthenticated /metrics route.
+Instrumentator().instrument(app)
 
 # Ensure upload directory exists
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
@@ -75,20 +131,13 @@ os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled exception: {exc}", exc_info=True)
     
-    origin = request.headers.get("origin")
-    headers = {}
-    if origin:
-        headers["Access-Control-Allow-Origin"] = origin
-        headers["Access-Control-Allow-Credentials"] = "true"
-        
     return JSONResponse(
         status_code=500,
         content={
             "success": False,
             "message": "An unexpected error occurred. Please try again later.",
             "detail": str(exc) if getattr(settings, "DEBUG", False) else "Internal Server Error"
-        },
-        headers=headers
+        }
     )
 
 @app.get("/")
@@ -128,3 +177,7 @@ app.include_router(analytics.router, prefix=f"{settings.API_V1_STR}/analytics", 
 app.include_router(jd.router, prefix=f"{settings.API_V1_STR}/jd", tags=["jd"])
 app.include_router(export.router, prefix=f"{settings.API_V1_STR}/export", tags=["export"])
 app.include_router(system.router, prefix=f"{settings.API_V1_STR}/system", tags=["system"])
+
+# Wrap the whole FastAPI stack so oversized upload bodies are rejected before
+# Starlette's multipart parser has to spool or parse them.
+app.add_middleware(UploadRequestLimitMiddleware, max_bytes=settings.MAX_UPLOAD_SIZE)

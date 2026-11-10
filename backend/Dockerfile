@@ -16,9 +16,8 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Install Python dependencies
-COPY requirements.txt .
-# Optionally use requirements.lock if we are strictly locking via pip-tools
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.lock .
+RUN pip install --no-cache-dir -r requirements.lock
 
 # Download spaCy model
 RUN python -m spacy download en_core_web_sm

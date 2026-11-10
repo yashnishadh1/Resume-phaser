@@ -93,7 +93,7 @@ export default function ResumeUpload() {
       <input 
         type="file" 
         multiple 
-        accept=".pdf,.doc,.docx"
+        accept=".pdf,.docx"
         className="hidden" 
         ref={fileInputRef}
         onChange={(e) => handleFiles(e.target.files)}

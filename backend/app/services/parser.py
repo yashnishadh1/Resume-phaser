@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 
 try:
-    import fitz # PyMuPDF
+    import pymupdf as fitz
 except ImportError:
     fitz = None
 import docx
